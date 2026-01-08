@@ -1,0 +1,162 @@
+{
+  "name": "simple-scp",
+  "displayName": "Simple SCP",
+  "description": "Lightweight SCP file upload tool with cross-device host configuration sync",
+  "version": "0.0.1",
+  "publisher": "your-publisher-name",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:simpleScp.hosts"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "simpleScp",
+          "title": "Simple SCP",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "simpleScp": [
+        {
+          "id": "simpleScp.hosts",
+          "name": "Hosts"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "simpleScp.addHost",
+        "title": "Add Host",
+        "icon": "$(add)"
+      },
+      {
+        "command": "simpleScp.editHost",
+        "title": "Edit Host",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "simpleScp.deleteHost",
+        "title": "Delete Host",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "simpleScp.addGroup",
+        "title": "Add Group",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "simpleScp.importFromSshConfig",
+        "title": "Import from SSH Config",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "simpleScp.uploadFile",
+        "title": "Upload to Remote Host"
+      },
+      {
+        "command": "simpleScp.setupPasswordlessLogin",
+        "title": "Setup Passwordless Login",
+        "icon": "$(key)"
+      },
+      {
+        "command": "simpleScp.testConnection",
+        "title": "Test Connection",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "simpleScp.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "simpleScp.addHost",
+          "when": "view == simpleScp.hosts",
+          "group": "navigation@1"
+        },
+        {
+          "command": "simpleScp.addGroup",
+          "when": "view == simpleScp.hosts",
+          "group": "navigation@2"
+        },
+        {
+          "command": "simpleScp.importFromSshConfig",
+          "when": "view == simpleScp.hosts",
+          "group": "navigation@3"
+        },
+        {
+          "command": "simpleScp.refresh",
+          "when": "view == simpleScp.hosts",
+          "group": "navigation@4"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "simpleScp.editHost",
+          "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "inline@1"
+        },
+        {
+          "command": "simpleScp.testConnection",
+          "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "inline@2"
+        },
+        {
+          "command": "simpleScp.setupPasswordlessLogin",
+          "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "1_actions@1"
+        },
+        {
+          "command": "simpleScp.deleteHost",
+          "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "2_danger@1"
+        },
+        {
+          "command": "simpleScp.deleteHost",
+          "when": "view == simpleScp.hosts && viewItem == group",
+          "group": "2_danger@1"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "simpleScp.uploadFile",
+          "group": "7_modification"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js --production",
+    "compile": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/node": "18.x",
+    "@types/ssh2": "^1.15.0",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "esbuild": "^0.27.2",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.2"
+  },
+  "dependencies": {
+    "ssh2": "^1.15.0",
+    "ssh2-sftp-client": "^10.0.3"
+  }
+}
