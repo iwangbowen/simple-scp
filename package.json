@@ -42,14 +42,12 @@
       {
         "command": "simpleScp.editHost",
         "title": "Edit Host",
-        "icon": "$(edit)",
-        "enablement": "false"
+        "icon": "$(edit)"
       },
       {
         "command": "simpleScp.deleteHost",
         "title": "Delete",
-        "icon": "$(trash)",
-        "enablement": "false"
+        "icon": "$(trash)"
       },
       {
         "command": "simpleScp.addGroup",
@@ -71,32 +69,27 @@
       {
         "command": "simpleScp.setupPasswordlessLogin",
         "title": "Setup Passwordless Login",
-        "icon": "$(key)",
-        "enablement": "false"
+        "icon": "$(key)"
       },
       {
         "command": "simpleScp.testConnection",
         "title": "Test Connection",
-        "icon": "$(plug)",
-        "enablement": "false"
+        "icon": "$(plug)"
       },
       {
         "command": "simpleScp.refresh",
         "title": "Refresh",
-        "icon": "$(refresh)",
-        "enablement": "false"
+        "icon": "$(refresh)"
       },
       {
         "command": "simpleScp.configureAuth",
         "title": "Configure Authentication",
-        "icon": "$(lock)",
-        "enablement": "false"
+        "icon": "$(lock)"
       },
       {
         "command": "simpleScp.copySshCommand",
         "title": "Copy SSH Command",
-        "icon": "$(copy)",
-        "enablement": "false"
+        "icon": "$(copy)"
       }
     ],
     "menus": {
@@ -160,6 +153,12 @@
         }
       ],
       "explorer/context": [
+        {
+          "command": "simpleScp.uploadFile",
+          "group": "7_modification"
+        }
+      ],
+      "editor/context": [
         {
           "command": "simpleScp.uploadFile",
           "group": "7_modification"
