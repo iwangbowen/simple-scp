@@ -108,6 +108,39 @@ export class HostManager {
   }
 
   /**
+   * Parse SSH config file and return host configurations (without adding to storage)
+   */
+  async parseSshConfigFile(): Promise<Omit<HostConfig, 'id'>[]> {
+    const sshConfigPath = path.join(os.homedir(), '.ssh', 'config');
+
+    if (!fs.existsSync(sshConfigPath)) {
+      throw new Error('SSH config file not found');
+    }
+
+    const configContent = fs.readFileSync(sshConfigPath, 'utf-8');
+    const entries = this.parseSshConfig(configContent);
+
+    const hosts: Omit<HostConfig, 'id'>[] = [];
+
+    for (const entry of entries) {
+      if (!entry.HostName) {
+        continue;
+      }
+
+      hosts.push({
+        name: entry.Host,
+        host: entry.HostName,
+        port: entry.Port ? parseInt(entry.Port) : 22,
+        username: entry.User || 'root',
+        authType: entry.IdentityFile ? 'privateKey' : 'password',
+        privateKeyPath: entry.IdentityFile,
+      });
+    }
+
+    return hosts;
+  }
+
+  /**
    * Import hosts from SSH config file
    */
   async importFromSshConfig(): Promise<HostConfig[]> {

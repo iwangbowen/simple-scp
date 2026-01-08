@@ -341,16 +341,57 @@ export class CommandHandler {
 
   private async importFromSshConfig(): Promise<void> {
     try {
-      const imported = await this.hostManager.importFromSshConfig();
-      this.treeProvider.refresh();
+      const existingHosts = await this.hostManager.getHosts();
+      const sshConfigHosts = await this.hostManager.parseSshConfigFile();
 
-      if (imported.length > 0) {
-        vscode.window.showInformationMessage(
-          `Successfully imported ${imported.length} host(s)`
-        );
-      } else {
-        vscode.window.showInformationMessage('No new hosts found');
+      if (sshConfigHosts.length === 0) {
+        vscode.window.showInformationMessage('No hosts found in SSH config file');
+        return;
       }
+
+      // Filter out hosts that already exist
+      const newHosts = sshConfigHosts.filter(
+        sshHost =>
+          !existingHosts.some(
+            h =>
+              h.host === sshHost.host &&
+              h.username === sshHost.username &&
+              h.port === sshHost.port
+          )
+      );
+
+      if (newHosts.length === 0) {
+        vscode.window.showInformationMessage('All hosts from SSH config are already imported');
+        return;
+      }
+
+      // Create QuickPick items for multi-selection
+      const items = newHosts.map(host => ({
+        label: host.name,
+        description: `${host.username}@${host.host}:${host.port}`,
+        detail: host.privateKeyPath ? `Key: ${host.privateKeyPath}` : 'Password auth',
+        picked: true, // Default to selected
+        host,
+      }));
+
+      const selected = await vscode.window.showQuickPick(items, {
+        placeHolder: 'Select hosts to import (all selected by default)',
+        canPickMany: true,
+      });
+
+      if (!selected || selected.length === 0) {
+        return;
+      }
+
+      // Import selected hosts
+      let imported = 0;
+      for (const item of selected) {
+        await this.hostManager.addHost(item.host);
+        imported++;
+      }
+
+      this.treeProvider.refresh();
+      vscode.window.showInformationMessage(`Successfully imported ${imported} host(s)`);
     } catch (error) {
       vscode.window.showErrorMessage(`Import failed: ${error}`);
     }
