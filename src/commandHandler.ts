@@ -742,13 +742,15 @@ export class CommandHandler {
       // Function to load and display directories
       const loadDirectory = async (pathToLoad: string) => {
         currentPath = pathToLoad;
-        quickPick.value = currentPath; // Update input box to show current path
-        quickPick.placeholder = `Navigate or press Enter to use: ${currentPath}`;
+        quickPick.value = ''; // Clear input box
+        quickPick.placeholder = `Loading... ${currentPath}`;
         quickPick.busy = true;
 
         try {
           logger.debug(`Listing directory: ${currentPath}`);
           const directories = await SshConnectionManager.listRemoteDirectory(config, authConfig, currentPath);
+
+          logger.debug(`Found ${directories.length} directories in ${currentPath}: ${directories.join(', ')}`);
 
           const items: vscode.QuickPickItem[] = [
             { label: '..', description: path.dirname(currentPath), alwaysShow: true },
@@ -760,6 +762,7 @@ export class CommandHandler {
           ];
 
           quickPick.items = items;
+          quickPick.placeholder = `Navigate or press Enter to use: ${currentPath}`;
           quickPick.busy = false;
         } catch (error) {
           quickPick.busy = false;
