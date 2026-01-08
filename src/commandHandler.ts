@@ -828,6 +828,18 @@ export class CommandHandler {
           quickPick.items = quickPick.items.filter(item =>
             !item.label.includes('Go to:')
           );
+        }
+      });
+
+      quickPick.onDidHide(() => {
+        quickPick.dispose();
+        resolve(undefined);
+      });
+
+      // Initial load
+      await loadDirectory(currentPath);
+      quickPick.show();
+    });
   }
 
   private async setupPasswordlessLogin(item: HostTreeItem): Promise<void> {
