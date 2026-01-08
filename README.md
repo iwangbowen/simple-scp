@@ -4,57 +4,146 @@ A lightweight VS Code extension for uploading files to remote hosts via SCP/SFTP
 
 ## Features
 
-- Cross-device sync: Synchronize host configurations across devices using VS Code's globalStorage
-- SSH config import: Import existing host configurations from ~/.ssh/config
-- Passwordless login: Configure passwordless login with ssh-copy-id-like functionality
-- File upload: Upload individual files and folders to remote hosts
-- Smart path selection: Browse remote directories dynamically with QuickPick interface
-- Progress display: Real-time upload progress indication
-- Group management: Organize hosts into groups
+### Core Functionality
+- **Quick File Upload**: Upload files directly from Explorer or Editor context menu
+- **Host Management**: Organize and manage remote hosts in TreeView interface
+- **Cross-Device Sync**: Host configurations automatically sync across devices via VS Code Settings Sync
+- **SSH Config Import**: Import existing configurations from ~/.ssh/config with group selection
+- **Interactive Path Selector**: Navigate remote directories with theme-aware folder icons
 
-## Usage
+### Authentication
+- **Multiple Methods**: Support for Password, Private Key, and SSH Agent authentication
+- **Secure Storage**: Authentication credentials stored locally (not synced) for security
+- **Passwordless Setup**: Automatically configure SSH key-based authentication
+- **Visual Indicators**: Clear status icons showing which hosts have authentication configured
+- **Windows SSH Agent**: Native support for Windows OpenSSH Agent via named pipes
 
-### Add Host
+### User Experience
+- **Smart Commands**: Only essential commands shown in Command Palette
+- **Progress Tracking**: Real-time indicators for uploads and long-running operations
+- **Color Coding**: Assign colors to hosts for easy visual identification
+- **Connection Testing**: Test SSH connections before uploading files
+- **Copy SSH Command**: Quickly copy connection commands to clipboard
+- **Output Logs**: Dedicated log viewer for troubleshooting
 
-1. Click the "Simple SCP" icon in the sidebar
-2. Click the "+" button to add a new host
-3. Enter host information (name, address, port, username, etc.)
+### Platform Support
+- Compatible with Windows, macOS, and Linux
+- Cross-platform SSH Agent integration
+- Works with standard OpenSSH configurations
 
-### Import SSH Config
+## Getting Started
 
-1. Click the "Import from SSH Config" button
-2. Select the host configurations to import
+### Add a New Host
+
+1. Open the Simple SCP panel in the Activity Bar
+2. Click the "+" icon in the toolbar
+3. Follow the prompts to enter:
+   - Host name (display name)
+   - Hostname or IP address
+   - Port (default: 22)
+   - Username
+   - Default remote path
+   - Optional: Group and color
+
+### Import from SSH Config
+
+1. Click the cloud download icon in the toolbar
+2. Select hosts to import from your ~/.ssh/config
+3. Choose a group or create a new one
+4. Imported hosts will appear in the TreeView
+
+### Configure Authentication
+
+**Option 1: Configure Manually**
+1. Right-click a host in the TreeView
+2. Select "Configure Authentication"
+3. Choose authentication method:
+   - Password
+   - Private Key (with optional passphrase)
+   - SSH Agent
+
+**Option 2: Setup Passwordless Login**
+1. Right-click a host
+2. Select "Setup Passwordless Login"
+3. Enter your password when prompted
+4. The extension will automatically copy your SSH public key to the remote host
 
 ### Upload Files
 
-1. Right-click a file or folder in the explorer
-2. Select "Upload to Remote Host"
-3. Choose the target host
-4. Select the remote path
+**From Explorer:**
+1. Right-click any file or folder
+2. Select "Simple SCP: Upload to Remote Host"
+3. Choose the destination host
+4. Navigate to select the remote directory
 
-### Configure Passwordless Login
+**From Editor:**
+1. Right-click in the editor
+2. Select "Simple SCP: Upload to Remote Host"
+3. Follow the same steps
 
-1. Right-click a host in the host list
-2. Select "Setup Passwordless Login"
-3. Follow the prompts to complete the setup
+### Edit Host Configuration
+
+1. Right-click a host in the TreeView
+2. Select "Edit Host"
+3. Update hostname, port, or other settings
+
+### Test Connection
+
+1. Right-click a host
+2. Select "Test Connection"
+3. View the result in a notification
 
 ## Requirements
 
 - VS Code 1.85.0 or higher
+- SSH access to remote hosts
+- For passwordless setup: SSH key pair (~/.ssh/id_rsa or similar)
 
-## Extension Settings
+## Command Palette
 
-This extension does not contribute any settings.
+The following commands are available in the Command Palette (Ctrl/Cmd+Shift+P):
 
-## Known Issues
+- **Simple SCP: Add Host** - Add a new remote host
+- **Simple SCP: Add Group** - Create a host group
+- **Simple SCP: Import from SSH Config** - Import from ~/.ssh/config
+- **Simple SCP: Show Output Logs** - Open the log viewer
 
-None
+Additional commands are available via context menus in the TreeView and file explorers.
+
+## Security Notes
+
+- Host configurations (names, addresses, ports) are synced via VS Code Settings Sync
+- Authentication credentials (passwords, private keys) are stored locally only using VS Code's SecretStorage
+- Credentials are never synced across devices for security
+- Each device requires separate authentication configuration
+
+## Known Limitations
+
+- Folder upload uploads files individually (not as archive)
+- Symbolic links are followed during upload
+- File permissions are preserved when possible
+
+## Troubleshooting
+
+**Connection Issues:**
+1. Use "Test Connection" to verify credentials
+2. Check "Simple SCP: Show Output Logs" for detailed error messages
+3. Verify SSH access works from terminal: `ssh user@host -p port`
+
+**Windows SSH Agent:**
+- Ensure OpenSSH Authentication Agent service is running
+- Start service: `Start-Service ssh-agent` in PowerShell (Administrator)
+
+**Import Issues:**
+- Verify ~/.ssh/config file exists and is readable
+- Check config file syntax is valid
 
 ## Release Notes
 
-### 0.0.1
+See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
 
-Initial release
+### 0.5.0
+Initial public release with full SCP/SFTP upload functionality, multiple authentication methods, SSH config import, and cross-device host synchronization.
 
 ## Development
 
@@ -67,4 +156,24 @@ npm run compile
 
 # Watch mode
 npm run watch
+
+# Package extension
+npm run package
+
+# Publish to marketplace
+npm run publish
 ```
+
+## License
+
+See [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit issues or pull requests.
+
+## Links
+
+- [GitHub Repository](https://github.com/iwangbowen/simple-scp)
+- [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=WangBowen.simple-scp)
+- [Report Issues](https://github.com/iwangbowen/simple-scp/issues)
