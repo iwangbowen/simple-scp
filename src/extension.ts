@@ -2,12 +2,13 @@ import * as vscode from 'vscode';
 import { HostManager } from './hostManager';
 import { HostTreeProvider } from './hostTreeProvider';
 import { CommandHandler } from './commandHandler';
+import { logger } from './logger';
 
 /**
  * Called when extension is activated
  */
 export async function activate(context: vscode.ExtensionContext) {
-  console.log('Simple SCP extension activated');
+  logger.info('Extension activated');
 
   // Initialize host manager
   const hostManager = new HostManager(context);
@@ -26,12 +27,12 @@ export async function activate(context: vscode.ExtensionContext) {
   const commandHandler = new CommandHandler(hostManager, treeProvider);
   commandHandler.registerCommands(context);
 
-  vscode.window.showInformationMessage('Simple SCP is ready');
+  logger.info('Extension ready');
 }
 
 /**
  * Called when extension is deactivated
  */
 export function deactivate() {
-  console.log('Simple SCP extension deactivated');
+  logger.info('Extension deactivated');
 }
