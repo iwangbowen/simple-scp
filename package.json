@@ -97,6 +97,12 @@
         "title": "Copy SSH Command",
         "category": "Simple SCP",
         "icon": "$(copy)"
+      },
+      {
+        "command": "simpleScp.showLogs",
+        "title": "Show Output Logs",
+        "category": "Simple SCP",
+        "icon": "$(output)"
       }
     ],
     "menus": {
@@ -109,6 +115,9 @@
         },
         {
           "command": "simpleScp.importFromSshConfig"
+        },
+        {
+          "command": "simpleScp.showLogs"
         },
         {
           "command": "simpleScp.uploadFile",

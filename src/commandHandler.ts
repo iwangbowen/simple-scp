@@ -44,7 +44,8 @@ export class CommandHandler {
       vscode.commands.registerCommand('simpleScp.copySshCommand', (item: HostTreeItem) =>
         this.copySshCommand(item)
       ),
-      vscode.commands.registerCommand('simpleScp.refresh', () => this.refresh())
+      vscode.commands.registerCommand('simpleScp.refresh', () => this.refresh()),
+      vscode.commands.registerCommand('simpleScp.showLogs', () => this.showLogs())
     );
   }
 
@@ -736,13 +737,14 @@ export class CommandHandler {
 
     return new Promise(async (resolve) => {
       const quickPick = vscode.window.createQuickPick();
-      quickPick.placeholder = `Current path: ${currentPath} (Type to filter or enter path)`;
+      quickPick.placeholder = `Loading... ${currentPath}`;
       quickPick.canSelectMany = false;
+      quickPick.busy = true; // Start with busy state
 
       // Function to load and display directories
       const loadDirectory = async (pathToLoad: string) => {
         currentPath = pathToLoad;
-        quickPick.value = ''; // Clear input box
+        quickPick.value = ''; // Clear input box for filtering
         quickPick.placeholder = `Loading... ${currentPath}`;
         quickPick.busy = true;
 
@@ -762,7 +764,7 @@ export class CommandHandler {
           ];
 
           quickPick.items = items;
-          quickPick.placeholder = `Navigate or press Enter to use: ${currentPath}`;
+          quickPick.placeholder = `${currentPath} (Navigate or press Enter to select)`;
           quickPick.busy = false;
         } catch (error) {
           quickPick.busy = false;
@@ -843,9 +845,9 @@ export class CommandHandler {
         resolve(undefined);
       });
 
-      // Initial load
-      await loadDirectory(currentPath);
+      // Show quickPick first, then load initial directory
       quickPick.show();
+      await loadDirectory(currentPath);
     });
   }
 
@@ -1034,5 +1036,9 @@ export class CommandHandler {
 
   private refresh(): void {
     this.treeProvider.refresh();
+  }
+
+  private showLogs(): void {
+    logger.show();
   }
 }
