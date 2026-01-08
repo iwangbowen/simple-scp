@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle with gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#357ABD;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="arrowGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFA500;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="128" height="128" rx="24" fill="url(#bgGradient)"/>
+
+  <!-- Center group for all content - enlarged 1.15x and moved down 6px -->
+  <g transform="translate(64, 70) scale(1.15)">
+    <!-- Server/Cloud icon (centered) -->
+    <g transform="translate(-36, -38)">
+      <!-- Server body -->
+      <rect x="0" y="0" width="72" height="18" rx="3" fill="#ffffff" opacity="0.95"/>
+      <rect x="0" y="24" width="72" height="18" rx="3" fill="#ffffff" opacity="0.95"/>
+      <rect x="0" y="48" width="72" height="18" rx="3" fill="#ffffff" opacity="0.95"/>
+
+      <!-- Server details (LED indicators) -->
+      <circle cx="8" cy="9" r="2.5" fill="#4AE290"/>
+      <circle cx="16" cy="9" r="2.5" fill="#4AE290"/>
+      <rect x="24" y="7" width="42" height="4" rx="2" fill="#E0E0E0"/>
+
+      <circle cx="8" cy="33" r="2.5" fill="#4AE290"/>
+      <circle cx="16" cy="33" r="2.5" fill="#4AE290"/>
+      <rect x="24" y="31" width="42" height="4" rx="2" fill="#E0E0E0"/>
+
+      <circle cx="8" cy="57" r="2.5" fill="#4AE290"/>
+      <circle cx="16" cy="57" r="2.5" fill="#4AE290"/>
+      <rect x="24" y="55" width="42" height="4" rx="2" fill="#E0E0E0"/>
+    </g>
+
+    <!-- Upload arrow (centered) -->
+    <g transform="translate(6, 4)">
+      <!-- Arrow shaft -->
+      <rect x="16" y="4" width="10" height="28" fill="url(#arrowGradient)" rx="2"/>
+
+      <!-- Arrow head pointing up -->
+      <path d="M 21 0 L 36 16 L 28 16 L 28 20 L 14 20 L 14 16 L 6 16 Z"
+            fill="url(#arrowGradient)"/>
+    </g>
+
+    <!-- Subtle connection line/wave -->
+    <path d="M -8 -14 Q 0 -8 6 0"
+          stroke="#ffffff"
+          stroke-width="2.5"
+          fill="none"
+          opacity="0.35"
+          stroke-dasharray="5,4"
+          stroke-linecap="round"/>
+  </g>
+</svg>
