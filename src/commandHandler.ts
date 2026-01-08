@@ -757,16 +757,15 @@ export class CommandHandler {
           const items: vscode.QuickPickItem[] = [
             {
               label: '..',
-              description: 'Parent directory: ' + path.dirname(currentPath),
-              alwaysShow: true,
-              // Store the actual path in detail for easier access
-              detail: path.dirname(currentPath)
+              alwaysShow: true
             },
-            { label: '$(check) Use this path', description: currentPath, alwaysShow: true },
+            {
+              label: '$(check) Use this path',
+              alwaysShow: true
+            },
             ...directories.map(dir => ({
-              label: '$(folder) ' + dir,
-              description: path.join(currentPath, dir).replace(/\\/g, '/'),
-              detail: path.join(currentPath, dir).replace(/\\/g, '/')
+              label: dir,
+              iconPath: new vscode.ThemeIcon('folder')
             })),
           ];
 
@@ -812,15 +811,17 @@ export class CommandHandler {
           quickPick.hide();
           resolve(currentPath);
         } else if (selected.label === '..') {
-          // Navigate to parent directory, use detail field
-          const parentPath = selected.detail || path.dirname(currentPath);
+          // Navigate to parent directory
+          const parentPath = path.dirname(currentPath);
           loadDirectory(parentPath);
         } else if (selected.label.includes('Go to:')) {
-          // User selected custom path option
-          loadDirectory(selected.description!);
+          // User selected custom path option - extract path from label
+          const customPath = selected.label.replace(/^.*Go to:\s*/, '');
+          loadDirectory(customPath);
         } else {
-          // Navigate into subdirectory, use detail field
-          const targetPath = selected.detail || selected.description!;
+          // Navigate into subdirectory
+          // eslint-disable-next-line unicorn/prefer-string-replace-all
+          const targetPath = path.join(currentPath, selected.label).replace(/\\/g, '/');
           loadDirectory(targetPath);
         }
       });
@@ -832,7 +833,6 @@ export class CommandHandler {
           // User is typing an absolute path
           const customPathItem: vscode.QuickPickItem = {
             label: `$(arrow-right) Go to: ${value}`,
-            description: value,
             alwaysShow: true,
           };
 
