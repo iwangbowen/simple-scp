@@ -9,3 +9,10 @@ vsc-extension-quickstart.md
 **/*.map
 **/*.ts
 esbuild.js
+.git/**
+.github/**
+node_modules/**/.bin/**
+**/*.vsix
+**/STRUCTURE.md
+**/IMPLEMENTATION_PLAN.md
+resources/extension-icon.svg
