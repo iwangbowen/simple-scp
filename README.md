@@ -5,11 +5,16 @@ A lightweight VS Code extension for uploading files to remote hosts via SCP/SFTP
 ## Features
 
 ### Core Functionality
-- **Quick File Upload**: Upload files directly from Explorer or Editor context menu
+- **Quick File Upload/Download**: Upload or download files directly from Explorer, Editor, or remote file browser
 - **Host Management**: Organize and manage remote hosts in TreeView interface
 - **Cross-Device Sync**: Host configurations automatically sync across devices via VS Code Settings Sync
 - **SSH Config Import**: Import existing configurations from ~/.ssh/config with group selection
-- **Interactive Path Selector**: Navigate remote directories with theme-aware folder icons
+- **Enhanced File Browser**:
+  - Smart path navigation with input box
+  - Alphabetical sorting (directories first, then files)
+  - Quick upload/download buttons on each item
+  - Dot files visibility toggle (configurable via settings)
+  - Parent directory navigation with ".."
 
 ### Authentication
 - **Multiple Methods**: Support for Password, Private Key, and SSH Agent authentication
@@ -74,12 +79,22 @@ A lightweight VS Code extension for uploading files to remote hosts via SCP/SFTP
 1. Right-click any file or folder
 2. Select "Simple SCP: Upload to Remote Host"
 3. Choose the destination host
-4. Navigate to select the remote directory
+4. Browse and select the remote directory
+5. Use upload buttons on directory items for quick upload
 
 **From Editor:**
 1. Right-click in the editor
 2. Select "Simple SCP: Upload to Remote Host"
 3. Follow the same steps
+
+### Download Files
+
+1. Right-click a host in the TreeView
+2. Select "Download from Remote Host"
+3. Browse remote directories with smart path navigation
+4. Click download buttons on files/directories for quick download
+5. Toggle dot files visibility as needed
+6. Select destination for downloaded files
 
 ### Edit Host Configuration
 
@@ -109,6 +124,16 @@ The following commands are available in the Command Palette (Ctrl/Cmd+Shift+P):
 - **Simple SCP: Show Output Logs** - Open the log viewer
 
 Additional commands are available via context menus in the TreeView and file explorers.
+
+## Settings
+
+### simpleScp.showDotFiles
+
+- **Type**: boolean
+- **Default**: true
+- **Description**: Show hidden files and directories (starting with dot) in remote file browser
+
+You can change this setting in VS Code Settings (Ctrl/Cmd+,) to control the default behavior. The setting can also be temporarily toggled using the eye icon button in the file browser.
 
 ## Security Notes
 
@@ -143,7 +168,12 @@ Additional commands are available via context menus in the TreeView and file exp
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
 
+### 0.6.0
+
+Enhanced remote file browser with smart path navigation, alphabetical sorting, quick upload/download buttons, and configurable dot files visibility.
+
 ### 0.5.0
+
 Initial public release with full SCP/SFTP upload functionality, multiple authentication methods, SSH config import, and cross-device host synchronization.
 
 ## Development
