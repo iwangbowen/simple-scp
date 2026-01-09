@@ -228,21 +228,19 @@ export class CommandHandler {
         return false;
       }
 
-      const needPassphrase = await vscode.window.showQuickPick(
-        [{ label: 'Yes', value: true }, { label: 'No', value: false }],
-        { placeHolder: 'Does the private key have a passphrase?' }
-      );
+      // Optional passphrase - user can leave empty if key has no passphrase
+      passphrase = await vscode.window.showInputBox({
+        prompt: 'Enter passphrase (leave empty if no passphrase)',
+        password: true,
+        placeHolder: 'Press Enter to skip if key has no passphrase',
+      });
 
-      if (needPassphrase === undefined) {
+      // User pressed ESC - cancel the whole process
+      if (passphrase === undefined) {
         return false;
       }
 
-      if (needPassphrase.value) {
-        passphrase = await vscode.window.showInputBox({
-          prompt: 'Enter passphrase',
-          password: true,
-        });
-      }
+      // Empty string means no passphrase, which is OK
     }
 
     // Save authentication config
@@ -252,7 +250,7 @@ export class CommandHandler {
         authType: authType.value as any,
         password,
         privateKeyPath,
-        passphrase,
+        passphrase: passphrase && passphrase.trim() ? passphrase : undefined, // Only save non-empty passphrase
       });
       return true;
     } catch (error) {

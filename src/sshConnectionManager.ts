@@ -229,20 +229,16 @@ export class SshConnectionManager {
         // Windows: Try named pipe for SSH Agent
         const agentPath = String.raw`\\.\pipe\openssh-ssh-agent`;
         connectConfig.agent = agentPath;
-
-        // Fallback: If agent fails, try to use default private key
-        // This will be handled by ssh2 automatically if agent connection fails
-        const os = require('os');
-        const defaultKeyPath = path.join(os.homedir(), '.ssh', 'id_rsa');
-        const ed25519KeyPath = path.join(os.homedir(), '.ssh', 'id_ed25519');
-
-        // Try to find a default key as fallback
-        if (fs.existsSync(ed25519KeyPath)) {
-          connectConfig.privateKey = fs.readFileSync(ed25519KeyPath);
-        } else if (fs.existsSync(defaultKeyPath)) {
-          connectConfig.privateKey = fs.readFileSync(defaultKeyPath);
-        }
       } else {
+        // Unix/WSL: Use SSH_AUTH_SOCK
+        if (!process.env.SSH_AUTH_SOCK) {
+          throw new Error(
+            'SSH Agent not running. Please start SSH Agent:\n\n' +
+            '  eval "$(ssh-agent -s)"\n' +
+            '  ssh-add ~/.ssh/id_rsa\n\n' +
+            'Or use "Private Key" authentication instead.'
+          );
+        }
         connectConfig.agent = process.env.SSH_AUTH_SOCK;
       }
     }
