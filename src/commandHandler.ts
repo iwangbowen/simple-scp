@@ -789,6 +789,7 @@ export class CommandHandler {
     title: string
   ): Promise<string | { path: string; isDirectory: boolean } | undefined> {
     let currentPath = config.defaultRemotePath || '/root';
+    let showDotFiles = false;
     logger.info(`Browsing remote on ${config.name}, starting at: ${currentPath}`);
 
     return new Promise(async (resolve) => {
@@ -797,6 +798,19 @@ export class CommandHandler {
       quickPick.canSelectMany = false;
       quickPick.busy = true;
       quickPick.title = title;
+
+      // Add toggle button for download mode
+      const updateButtons = () => {
+        if (mode === 'browseFiles') {
+          quickPick.buttons = [
+            {
+              iconPath: new vscode.ThemeIcon(showDotFiles ? 'eye-closed' : 'eye'),
+              tooltip: showDotFiles ? 'Hide dot files' : 'Show dot files'
+            }
+          ];
+        }
+      };
+      updateButtons();
 
       let isLoadingPath = false;
 
@@ -816,8 +830,13 @@ export class CommandHandler {
             const directories = await SshConnectionManager.listRemoteDirectory(config, authConfig, currentPath);
             logger.debug(`Found ${directories.length} directories in ${currentPath}`);
 
+            // Filter dot files if needed
+            const filteredDirs = showDotFiles
+              ? directories
+              : directories.filter(dir => !dir.startsWith('.'));
+
             // Sort directories alphabetically
-            const sortedDirs = [...directories].sort((a, b) => a.localeCompare(b));
+            const sortedDirs = [...filteredDirs].sort((a, b) => a.localeCompare(b));
 
             quickPickItems = [
               {
@@ -825,27 +844,34 @@ export class CommandHandler {
                 description: '',
                 alwaysShow: true
               },
-              {
-                label: '$(check) Use this path',
-                description: currentPath,
-                alwaysShow: true
-              },
               ...sortedDirs.map(dir => ({
                 label: `$(folder) ${dir}`,
                 description: '',
-                alwaysShow: true
-              })),
+                alwaysShow: true,
+                buttons: [
+                  {
+                    iconPath: new vscode.ThemeIcon('cloud-upload'),
+                    tooltip: 'Upload to this directory'
+                  }
+                ],
+                dirName: dir
+              } as any)),
             ];
           } else {
             // For file browsing, show files and directories
             const items = await SshConnectionManager.listRemoteFiles(config, authConfig, currentPath);
             logger.debug(`Found ${items.length} items in ${currentPath}`);
 
+            // Filter dot files if needed
+            const filteredItems = showDotFiles
+              ? items
+              : items.filter(item => !item.name.startsWith('.'));
+
             // Sort: directories first (alphabetically), then files (alphabetically)
-            const directories = items
+            const directories = filteredItems
               .filter(item => item.type === 'directory')
               .sort((a, b) => a.name.localeCompare(b.name));
-            const files = items
+            const files = filteredItems
               .filter(item => item.type === 'file')
               .sort((a, b) => a.name.localeCompare(b.name));
             const sortedItems = [...directories, ...files];
@@ -873,6 +899,7 @@ export class CommandHandler {
 
           quickPick.items = quickPickItems;
           quickPick.busy = false;
+          updateButtons();
 
           // Update value with trailing slash after loading
           if (updateValue) {
@@ -931,14 +958,24 @@ export class CommandHandler {
         }, 300);
       });
 
-      // Handle button click (for file browsing mode only)
+      // Handle QuickPick button click (toggle dot files)
       if (mode === 'browseFiles') {
-        quickPick.onDidTriggerItemButton(async (event) => {
-          const selected = event.item as any;
-          if (!selected || selected.label === '..') {
-            return;
-          }
+        quickPick.onDidTriggerButton(() => {
+          showDotFiles = !showDotFiles;
+          updateButtons();
+          loadDirectory(currentPath, false);
+        });
+      }
 
+      // Handle item button click
+      quickPick.onDidTriggerItemButton(async (event) => {
+        const selected = event.item as any;
+        if (!selected || selected.label === '..' || selected.isDotFilesToggle) {
+          return;
+        }
+
+        if (mode === 'browseFiles') {
+          // Download button
           const item = selected.item;
           const itemPath = `${currentPath}/${item.name}`.replace(/\/\//g, '/');
           logger.info(`Selected for download via button: ${itemPath} (${item.type})`);
@@ -947,8 +984,16 @@ export class CommandHandler {
             path: itemPath,
             isDirectory: item.type === 'directory'
           });
-        });
-      }
+        } else if (mode === 'selectPath') {
+          // Upload button
+          if (selected.dirName) {
+            const targetPath = `${currentPath}/${selected.dirName}`.replace(/\/\//g, '/');
+            logger.info(`Selected for upload via button: ${targetPath}`);
+            quickPick.hide();
+            resolve(targetPath);
+          }
+        }
+      });
 
       // Handle selection
       quickPick.onDidAccept(() => {
@@ -961,10 +1006,6 @@ export class CommandHandler {
         if (selected.label === '..') {
           const parentPath = path.dirname(currentPath);
           loadDirectory(parentPath);
-        } else if (selected.label === '$(check) Use this path') {
-          logger.info(`Selected remote path: ${currentPath}`);
-          quickPick.hide();
-          resolve(currentPath);
         } else if (mode === 'browseFiles' && selected.item) {
           if (selected.item.type === 'directory') {
             const targetPath = `${currentPath}/${selected.item.name}`.replace(/\/\//g, '/');
@@ -978,10 +1019,8 @@ export class CommandHandler {
               isDirectory: false
             });
           }
-        } else if (mode === 'selectPath') {
-          // Extract directory name (remove icon prefix)
-          const dirName = selected.label.replace(/^\$\([^)]+\)\s*/, '');
-          const targetPath = path.join(currentPath, dirName).replace(/\\/g, '/');
+        } else if (mode === 'selectPath' && selected.dirName) {
+          const targetPath = `${currentPath}/${selected.dirName}`.replace(/\/\//g, '/');
           loadDirectory(targetPath);
         }
       });
