@@ -384,7 +384,6 @@ export class CommandHandler {
             { label: 'Blue', value: 'blue', description: '🔵' },
             { label: 'Yellow', value: 'yellow', description: '🟡' },
             { label: 'Purple', value: 'purple', description: '🟣' },
-            { label: 'Orange', value: 'orange', description: '🟠' },
           ],
           { placeHolder: 'Select color' }
         );
