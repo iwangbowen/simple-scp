@@ -785,8 +785,9 @@ export class CommandHandler {
       // Function to load and display directories
       const loadDirectory = async (pathToLoad: string) => {
         currentPath = pathToLoad;
-        quickPick.value = ''; // Clear input box for filtering
-        quickPick.placeholder = `Loading... ${currentPath}`;
+        quickPick.value = ''; // Clear for filtering
+        quickPick.placeholder = currentPath; // Show current path in placeholder
+        quickPick.title = `Select remote directory`; // Use title to show navigation hint
         quickPick.busy = true;
 
         try {
@@ -802,6 +803,7 @@ export class CommandHandler {
             },
             {
               label: '$(check) Use this path',
+              description: currentPath,
               alwaysShow: true
             },
             ...directories.map(dir => ({
@@ -811,7 +813,6 @@ export class CommandHandler {
           ];
 
           quickPick.items = items;
-          quickPick.placeholder = `${currentPath} (Navigate or press Enter to select)`;
           quickPick.busy = false;
         } catch (error) {
           quickPick.busy = false;
@@ -834,12 +835,13 @@ export class CommandHandler {
       // Handle selection
       quickPick.onDidAccept(() => {
         const selected = quickPick.selectedItems[0];
+        const customPath = quickPick.value.trim();
 
-        // If user presses Enter with custom path in input box
-        if (!selected && quickPick.value && quickPick.value.startsWith('/')) {
-          logger.info(`Selected remote path (custom input): ${quickPick.value}`);
+        // If user typed a custom path
+        if (!selected && customPath && customPath.startsWith('/')) {
+          logger.info(`Selected remote path (custom input): ${customPath}`);
           quickPick.hide();
-          resolve(quickPick.value);
+          resolve(customPath);
           return;
         }
 
@@ -857,8 +859,8 @@ export class CommandHandler {
           loadDirectory(parentPath);
         } else if (selected.label.includes('Go to:')) {
           // User selected custom path option - extract path from label
-          const customPath = selected.label.replace(/^.*Go to:\s*/, '');
-          loadDirectory(customPath);
+          const path = selected.label.replace(/^.*Go to:\s*/, '');
+          loadDirectory(path);
         } else {
           // Navigate into subdirectory
           // eslint-disable-next-line unicorn/prefer-string-replace-all
@@ -867,13 +869,15 @@ export class CommandHandler {
         }
       });
 
-      // Handle manual path input
+      // Handle manual path input - show "Go to" option
       quickPick.onDidChangeValue((value) => {
+        const trimmedValue = value.trim();
+
         // Only show "Go to" option if user types a different path than current
-        if (value && value.startsWith('/') && value !== currentPath) {
+        if (trimmedValue && trimmedValue.startsWith('/') && trimmedValue !== currentPath) {
           // User is typing an absolute path
           const customPathItem: vscode.QuickPickItem = {
-            label: `$(arrow-right) Go to: ${value}`,
+            label: `$(arrow-right) Go to: ${trimmedValue}`,
             alwaysShow: true,
           };
 
@@ -882,8 +886,8 @@ export class CommandHandler {
             !item.label.includes('Go to:')
           );
           quickPick.items = [customPathItem, ...existingItems];
-        } else if (value === currentPath) {
-          // User cleared the custom input, restore original items
+        } else {
+          // Remove "Go to" option if path matches current or is not absolute
           quickPick.items = quickPick.items.filter(item =>
             !item.label.includes('Go to:')
           );
