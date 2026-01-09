@@ -1210,8 +1210,8 @@ export class CommandHandler {
       const loadDirectory = async (pathToLoad: string) => {
         currentPath = pathToLoad;
         quickPick.value = '';
-        quickPick.placeholder = `${currentPath} (双击文件夹进入, 点击右侧 ☁↓ 下载文件/文件夹)`;
-        quickPick.title = `浏览远程文件`;
+        quickPick.placeholder = `${currentPath} (Double-click folders to enter, click ☁↓ to download)`;
+        quickPick.title = `Browse Remote Files`;
         quickPick.busy = true;
 
         try {
@@ -1223,17 +1223,17 @@ export class CommandHandler {
           const quickPickItems: vscode.QuickPickItem[] = [
             {
               label: '..',
-              description: '返回上级目录',
+              description: 'Go to parent directory',
               alwaysShow: true
             },
             ...items.map(item => ({
               label: item.type === 'directory' ? `$(folder) ${item.name}` : `$(file) ${item.name}`,
-              description: item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : '双击进入',
+              description: item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : 'Double-click to enter',
               // Add download button for each item
               buttons: [
                 {
                   iconPath: new vscode.ThemeIcon('cloud-download'),
-                  tooltip: '下载'
+                  tooltip: 'Download'
                 }
               ],
               // Store metadata in the item
