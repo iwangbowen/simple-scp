@@ -1206,20 +1206,12 @@ export class CommandHandler {
       quickPick.canSelectMany = false;
       quickPick.busy = true;
 
-      // Add download button
-      quickPick.buttons = [
-        {
-          iconPath: new vscode.ThemeIcon('cloud-download'),
-          tooltip: 'Download selected item'
-        }
-      ];
-
       // Function to load and display files and directories
       const loadDirectory = async (pathToLoad: string) => {
         currentPath = pathToLoad;
         quickPick.value = '';
-        quickPick.placeholder = currentPath;
-        quickPick.title = `Select file or folder to download`;
+        quickPick.placeholder = `${currentPath} (双击文件夹进入, 点击右侧 ☁↓ 下载文件/文件夹)`;
+        quickPick.title = `浏览远程文件`;
         quickPick.busy = true;
 
         try {
@@ -1231,12 +1223,19 @@ export class CommandHandler {
           const quickPickItems: vscode.QuickPickItem[] = [
             {
               label: '..',
+              description: '返回上级目录',
               alwaysShow: true
             },
             ...items.map(item => ({
               label: item.type === 'directory' ? `$(folder) ${item.name}` : `$(file) ${item.name}`,
-              description: item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : '',
-              detail: item.type === 'directory' ? 'Directory' : 'File',
+              description: item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : '双击进入',
+              // Add download button for each item
+              buttons: [
+                {
+                  iconPath: new vscode.ThemeIcon('cloud-download'),
+                  tooltip: '下载'
+                }
+              ],
               // Store metadata in the item
               item: item
             } as any)),
@@ -1263,16 +1262,15 @@ export class CommandHandler {
       };
 
       // Handle button click (download button)
-      quickPick.onDidTriggerButton(async (button) => {
-        const selected = quickPick.selectedItems[0] as any;
+      quickPick.onDidTriggerItemButton(async (event) => {
+        const selected = event.item as any;
         if (!selected || selected.label === '..') {
-          vscode.window.showWarningMessage('Please select a file or folder to download');
           return;
         }
 
         const item = selected.item;
         const itemPath = `${currentPath}/${item.name}`.replace(/\/\//g, '/');
-        logger.info(`Selected for download: ${itemPath} (${item.type})`);
+        logger.info(`Selected for download via button: ${itemPath} (${item.type})`);
         quickPick.hide();
         resolve({
           path: itemPath,
