@@ -1210,7 +1210,7 @@ export class CommandHandler {
       const loadDirectory = async (pathToLoad: string) => {
         currentPath = pathToLoad;
         quickPick.value = '';
-        quickPick.placeholder = `${currentPath} (Click folder to enter, click ☁↓ to download)`;
+        quickPick.placeholder = currentPath;
         quickPick.title = `Browse Remote Files`;
         quickPick.busy = true;
 
