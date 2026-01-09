@@ -19,6 +19,9 @@ export class CommandHandler {
   registerCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
       vscode.commands.registerCommand('simpleScp.addHost', () => this.addHost()),
+      vscode.commands.registerCommand('simpleScp.addHostToGroup', (item: HostTreeItem) =>
+        this.addHostToGroup(item)
+      ),
       vscode.commands.registerCommand('simpleScp.editHost', (item: HostTreeItem) =>
         this.editHost(item)
       ),
@@ -49,10 +52,10 @@ export class CommandHandler {
     );
   }
 
-  private async addHost(): Promise<void> {
-    // Step 1/7: Host name
+  private async addHost(groupId?: string): Promise<void> {
+    // Step 1/6: Host name
     const name = await vscode.window.showInputBox({
-      prompt: 'Step 1/7: Enter host name',
+      prompt: 'Step 1/6: Enter host name',
       placeHolder: 'e.g., My Server',
       validateInput: (value) => {
         if (!value || !value.trim()) {
@@ -63,9 +66,9 @@ export class CommandHandler {
     });
     if (name === undefined) {return;}
 
-    // Step 2/7: Host address
+    // Step 2/6: Host address
     const host = await vscode.window.showInputBox({
-      prompt: 'Step 2/7: Enter host address',
+      prompt: 'Step 2/6: Enter host address',
       placeHolder: 'e.g., 192.168.1.100 or example.com',
       validateInput: (value) => {
         if (!value || !value.trim()) {
@@ -76,9 +79,9 @@ export class CommandHandler {
     });
     if (host === undefined) {return;}
 
-    // Step 3/7: Port number
+    // Step 3/6: Port number
     const portStr = await vscode.window.showInputBox({
-      prompt: 'Step 3/7: Enter port number (optional, default: 22)',
+      prompt: 'Step 3/6: Enter port number (optional, default: 22)',
       value: '22',
       validateInput: (value) => {
         if (!value || !value.trim()) {
@@ -94,9 +97,9 @@ export class CommandHandler {
     if (portStr === undefined) {return;}
     const port = portStr.trim() ? parseInt(portStr) : 22;
 
-    // Step 4/7: Username
+    // Step 4/6: Username
     const username = await vscode.window.showInputBox({
-      prompt: 'Step 4/7: Enter username',
+      prompt: 'Step 4/6: Enter username',
       value: 'root',
       validateInput: (value) => {
         if (!value || !value.trim()) {
@@ -107,23 +110,7 @@ export class CommandHandler {
     });
     if (username === undefined) {return;}
 
-    // Step 5/7: Select group
-    const groups = await this.hostManager.getGroups();
-    let group: string | undefined;
-
-    if (groups.length > 0) {
-      const groupChoice = await vscode.window.showQuickPick(
-        [
-          { label: 'No Group', value: undefined },
-          ...groups.map(g => ({ label: g.name, value: g.id })),
-        ],
-        { placeHolder: 'Step 5/7: Select group (optional)' }
-      );
-      if (groupChoice === undefined) {return;}
-      group = groupChoice.value;
-    }
-
-    // Step 6/7: Save basic host info first
+    // Step 5/6: Save basic host info first
     let newHost: HostConfig;
     try {
       newHost = await this.hostManager.addHost({
@@ -131,20 +118,20 @@ export class CommandHandler {
         host: host.trim(),
         port,
         username: username.trim(),
-        group,
+        group: groupId, // Use the provided groupId or undefined
       });
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to add host: ${error}`);
       return;
     }
 
-    // Step 7/7: Configure authentication
+    // Step 6/6: Configure authentication
     const configureNow = await vscode.window.showQuickPick(
       [
         { label: 'Yes', value: true },
         { label: 'No, configure later', value: false },
       ],
-      { placeHolder: 'Step 7/7: Configure authentication now?' }
+      { placeHolder: 'Step 6/6: Configure authentication now?' }
     );
 
     if (configureNow === undefined) {
@@ -169,6 +156,21 @@ export class CommandHandler {
       this.treeProvider.refresh();
       vscode.window.showInformationMessage(`Host "${name}" added. Remember to configure authentication.`);
     }
+  }
+
+  /**
+   * Add host to a specific group (called from group context menu)
+   */
+  private async addHostToGroup(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'group') {
+      return;
+    }
+
+    const groupConfig = item.data as import('./types').GroupConfig;
+    logger.info(`Adding host to group: ${groupConfig.name}`);
+
+    // Call addHost with the groupId
+    await this.addHost(groupConfig.id);
   }
 
   /**

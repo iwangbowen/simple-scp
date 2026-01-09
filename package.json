@@ -53,6 +53,12 @@
         "icon": "$(add)"
       },
       {
+        "command": "simpleScp.addHostToGroup",
+        "title": "Add Host to Group",
+        "category": "Simple SCP",
+        "icon": "$(add)"
+      },
+      {
         "command": "simpleScp.editHost",
         "title": "Edit Host",
         "category": "Simple SCP",
@@ -163,6 +169,10 @@
         {
           "command": "simpleScp.copySshCommand",
           "when": "false"
+        },
+        {
+          "command": "simpleScp.addHostToGroup",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -217,6 +227,11 @@
           "command": "simpleScp.deleteHost",
           "when": "view == simpleScp.hosts && viewItem == host",
           "group": "2_danger@1"
+        },
+        {
+          "command": "simpleScp.addHostToGroup",
+          "when": "view == simpleScp.hosts && viewItem == group",
+          "group": "1_actions@1"
         },
         {
           "command": "simpleScp.deleteHost",
