@@ -174,14 +174,6 @@ You can change this setting in VS Code Settings (Ctrl/Cmd+,) to control the defa
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed release notes.
 
-### 0.6.0
-
-Enhanced remote file browser with smart path navigation, alphabetical sorting, quick upload/download buttons, and configurable dot files visibility.
-
-### 0.5.0
-
-Initial public release with full SCP/SFTP upload functionality, multiple authentication methods, SSH config import, and cross-device host synchronization.
-
 ## Development
 
 ```bash
