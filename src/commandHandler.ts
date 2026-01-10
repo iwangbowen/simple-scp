@@ -1107,11 +1107,10 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
               },
               ...sortedDirs.map(dir => {
                 const fullPath = `${currentPath}/${dir}`.replace(/\/\//g, '/');
-                const uri = vscode.Uri.parse(`scp-remote://${config.host}${fullPath}`);
 
                 const item: any = {
                   label: supportsResourceUri ? '' : dir,
-                  description: '',
+                  description: supportsResourceUri ? undefined : '',
                   alwaysShow: true,
                   buttons: [
                     {
@@ -1123,8 +1122,9 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
                 };
 
                 if (supportsResourceUri) {
-                  // 新版本：使用 resourceUri，不设置 iconPath，VS Code 自动从文件图标主题派生
-                  item.resourceUri = uri;
+                  // 新版本：同时设置 resourceUri 和 ThemeIcon.Folder，触发文件图标主题
+                  item.resourceUri = vscode.Uri.parse(`scp-remote://${config.host}${fullPath}`);
+                  item.iconPath = vscode.ThemeIcon.Folder;
                 } else {
                   // 旧版本：手动设置 iconPath
                   item.iconPath = new vscode.ThemeIcon('folder');
@@ -1159,12 +1159,12 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
               },
               ...sortedItems.map(item => {
                 const fullPath = `${currentPath}/${item.name}`.replace(/\/\//g, '/');
-                const uri = vscode.Uri.parse(`scp-remote://${config.host}${fullPath}`);
                 const isDirectory = item.type === 'directory';
 
                 const quickPickItem: any = {
                   label: supportsResourceUri ? '' : item.name,
-                  description: item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : '',
+                  description: supportsResourceUri ? undefined : (item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : ''),
+                  detail: supportsResourceUri && item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : undefined,
                   alwaysShow: true,
                   buttons: [
                     {
@@ -1176,8 +1176,9 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
                 };
 
                 if (supportsResourceUri) {
-                  // 新版本：使用 resourceUri，不设置 iconPath，VS Code 自动从文件图标主题派生
-                  quickPickItem.resourceUri = uri;
+                  // 新版本：同时设置 resourceUri 和 ThemeIcon.File/Folder，触发文件图标主题
+                  quickPickItem.resourceUri = vscode.Uri.parse(`scp-remote://${config.host}${fullPath}`);
+                  quickPickItem.iconPath = isDirectory ? vscode.ThemeIcon.Folder : vscode.ThemeIcon.File;
                 } else {
                   // 旧版本：手动设置 iconPath
                   quickPickItem.iconPath = isDirectory ? new vscode.ThemeIcon('folder') : new vscode.ThemeIcon('file');
