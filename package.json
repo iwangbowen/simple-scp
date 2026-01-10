@@ -297,13 +297,13 @@
       "explorer/context": [
         {
           "command": "simpleScp.uploadFile",
-          "group": "7_modification"
+          "group": "2_workspace@1"
         }
       ],
       "editor/context": [
         {
           "command": "simpleScp.uploadFile",
-          "group": "7_modification"
+          "group": "2_workspace@1"
         }
       ]
     },
