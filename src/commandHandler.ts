@@ -1160,11 +1160,11 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
               ...sortedItems.map(item => {
                 const fullPath = `${currentPath}/${item.name}`.replace(/\/\//g, '/');
                 const isDirectory = item.type === 'directory';
+                const fileSize = item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : '';
 
                 const quickPickItem: any = {
                   label: supportsResourceUri ? '' : item.name,
-                  description: supportsResourceUri ? undefined : (item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : ''),
-                  detail: supportsResourceUri && item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : undefined,
+                  description: fileSize,  // 显示文件大小（文件夹为空字符串）
                   alwaysShow: true,
                   buttons: [
                     {
