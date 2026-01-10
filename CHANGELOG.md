@@ -5,7 +5,8 @@
 ### Added
 
 - **Star/Unstar Hosts**: Toggle star status for hosts to mark favorites
-  - Starred hosts are displayed with a star icon
+  - Starred hosts with authentication: Yellow star icon (⭐)
+  - Starred hosts without authentication: Gray star icon (⭐)
   - Starred hosts are sorted to the top of the list
   - Quick access to frequently used hosts
   - Star button in host context menu (inline action)
@@ -13,7 +14,8 @@
 ### Improved
 
 - Host sorting: Starred hosts now appear first, followed by alphabetical order
-- Visual distinction for favorite hosts with star icon
+- Visual distinction for favorite hosts with color-coded star icons
+- Authentication status is preserved and visible even for starred hosts
 
 ## [0.7.1] - 2026-01-10
 

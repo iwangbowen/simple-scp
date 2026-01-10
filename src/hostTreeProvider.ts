@@ -25,16 +25,21 @@ export class HostTreeItem extends vscode.TreeItem {
       const host = data as HostConfig;
       this.contextValue = 'host';
 
-      // Show different icon based on auth status and starred state
-      if (hasAuth) {
-        // Server icon with optional user color, or star icon if starred
-        const iconName = host.starred ? 'star-full' : 'server';
+      // Show different icon based on starred state and auth status
+      if (host.starred) {
+        // Starred hosts: yellow star if configured, gray star if not configured
+        const starColor = hasAuth
+          ? new vscode.ThemeColor('charts.yellow')  // Yellow star for configured
+          : new vscode.ThemeColor('descriptionForeground');  // Gray star for not configured
+        this.iconPath = new vscode.ThemeIcon('star-full', starColor);
+      } else if (hasAuth) {
+        // Non-starred hosts with auth: server icon with optional user color
         this.iconPath = new vscode.ThemeIcon(
-          iconName,
+          'server',
           host.color ? new vscode.ThemeColor(`charts.${host.color}`) : undefined
         );
       } else {
-        // Warning icon for hosts without authentication
+        // Non-starred hosts without auth: warning icon
         this.iconPath = new vscode.ThemeIcon(
           'warning',
           new vscode.ThemeColor('errorForeground') // Red warning icon
