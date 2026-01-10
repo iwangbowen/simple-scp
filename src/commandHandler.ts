@@ -13,8 +13,7 @@ export class CommandHandler {
   constructor(
     private hostManager: HostManager,
     private authManager: AuthManager,
-    private treeProvider: HostTreeProvider,
-    private readonly treeView: vscode.TreeView<HostTreeItem>
+    private treeProvider: HostTreeProvider
   ) {}
 
   registerCommands(context: vscode.ExtensionContext): void {
@@ -26,8 +25,8 @@ export class CommandHandler {
       vscode.commands.registerCommand('simpleScp.editHost', (item: HostTreeItem) =>
         this.editHost(item)
       ),
-      vscode.commands.registerCommand('simpleScp.deleteHost', (item: HostTreeItem) =>
-        this.deleteHost(item)
+      vscode.commands.registerCommand('simpleScp.deleteHost', (item: HostTreeItem, items?: HostTreeItem[]) =>
+        this.deleteHost(item, items)
       ),
       vscode.commands.registerCommand('simpleScp.addGroup', () => this.addGroup()),
       vscode.commands.registerCommand('simpleScp.editGroup', (item: HostTreeItem) =>
@@ -413,12 +412,10 @@ export class CommandHandler {
     }
   }
 
-  private async deleteHost(item: HostTreeItem): Promise<void> {
-    // Get all selected items from the tree view
-    const selectedItems = this.treeView.selection;
-
-    // If there are multiple selections, use them; otherwise use the single item
-    const itemsToDelete = selectedItems.length > 1 ? selectedItems : [item];
+private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<void> {
+    // When canSelectMany is enabled, items contains all selected tree items
+    // If items is provided and has more than one item, use it; otherwise use the single item
+    const itemsToDelete = items && items.length > 0 ? items : [item];
 
     if (itemsToDelete.length === 0) {
       return;

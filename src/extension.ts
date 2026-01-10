@@ -29,7 +29,7 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(treeView);
 
   // Register command handler
-  const commandHandler = new CommandHandler(hostManager, authManager, treeProvider, treeView);
+  const commandHandler = new CommandHandler(hostManager, authManager, treeProvider);
   commandHandler.registerCommands(context);
 
   logger.info('Extension ready');
