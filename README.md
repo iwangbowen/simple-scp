@@ -1,6 +1,6 @@
 # Simple SCP
 
-A lightweight VS Code extension for uploading files to remote hosts via SCP/SFTP with cross-device host configuration synchronization.
+A lightweight VS Code extension for uploading and downloading files to/from remote hosts via SCP with cross-device host configuration synchronization.
 
 ## Support This Project
 
