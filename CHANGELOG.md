@@ -1,5 +1,28 @@
 # Change Log
 
+## [0.8.1] - 2026-01-10
+
+### Enhanced
+
+- **Modern File Browser with resourceUri**: Remote file browser now uses VS Code's new QuickPick API features
+  - Automatic file/folder icon derivation from current file icon theme
+  - Clean display with file names and paths auto-derived from resourceUri
+  - Custom URI scheme (`scp-remote://`) for better integration
+  - Persistent instructional text with `prompt` property
+  - Improved parent directory navigation with arrow-up icon
+  - File size shown in `detail` property instead of `description`
+  - **Backward Compatibility**: Smart runtime detection for seamless experience across versions
+    - VS Code 1.91+: Uses `resourceUri` for automatic icon and label derivation
+    - VS Code 1.85-1.90: Falls back to manual `label` and `iconPath` settings
+    - Detection via `'resourceUri' in testQuickPick` check, performed once per dialog
+    - Zero performance impact on older versions
+
+### Improved
+
+- Better visual hierarchy in file selection dialogs
+- More intuitive placeholder and prompt text
+- Consistent icon display across different themes
+
 ## [0.8.0] - 2026-01-10
 
 ### Added

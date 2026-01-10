@@ -1016,10 +1016,15 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
     return new Promise(async (resolve) => {
       const quickPick = vscode.window.createQuickPick();
-      quickPick.placeholder = '';
+      quickPick.placeholder = 'Type a path or select from the list';
       quickPick.canSelectMany = false;
       quickPick.busy = true;
       quickPick.title = title;
+
+      // Add prompt for persistent instructional text
+      quickPick.prompt = mode === 'selectPath'
+        ? 'Navigate using arrows or type a path ending with /'
+        : 'Select a file or folder to download';
 
       // Add buttons based on mode
       const updateButtons = () => {
@@ -1042,6 +1047,12 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       updateButtons();
 
       let isLoadingPath = false;
+
+      // 运行时检测 VS Code 是否支持 resourceUri
+      // 只需检测一次，避免在循环中重复创建 QuickPick
+      const testQuickPick = vscode.window.createQuickPick();
+      const supportsResourceUri = 'resourceUri' in testQuickPick;
+      testQuickPick.dispose();
 
       // Function to load and display files/directories
       const loadDirectory = async (pathToLoad: string, updateValue: boolean = true) => {
@@ -1070,21 +1081,33 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
             quickPickItems = [
               {
                 label: '..',
-                description: '',
                 alwaysShow: true
               },
-              ...sortedDirs.map(dir => ({
-                label: `$(folder) ${dir}`,
-                description: '',
-                alwaysShow: true,
-                buttons: [
-                  {
-                    iconPath: new vscode.ThemeIcon('cloud-upload'),
-                    tooltip: 'Upload to this directory'
-                  }
-                ],
-                dirName: dir
-              } as any)),
+              ...sortedDirs.map(dir => {
+                const fullPath = `${currentPath}/${dir}`.replace(/\/\//g, '/');
+                const uri = vscode.Uri.parse(`scp-remote://${config.host}${fullPath}`);
+
+                const item: any = {
+                  label: supportsResourceUri ? '' : dir,  // 新版本从 resourceUri 派生，旧版本手动设置
+                  description: '',  // 不显示描述
+                  iconPath: vscode.ThemeIcon.Folder,
+                  alwaysShow: true,
+                  buttons: [
+                    {
+                      iconPath: new vscode.ThemeIcon('cloud-upload'),
+                      tooltip: 'Upload to this directory'
+                    }
+                  ],
+                  dirName: dir
+                };
+
+                // 仅在支持时添加 resourceUri
+                if (supportsResourceUri) {
+                  item.resourceUri = uri;
+                }
+
+                return item;
+              }),
             ];
           } else {
             // For file browsing, show files and directories
@@ -1108,21 +1131,34 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
             quickPickItems = [
               {
                 label: '..',
-                description: '',
                 alwaysShow: true
               },
-              ...sortedItems.map(item => ({
-                label: item.type === 'directory' ? `$(folder) ${item.name}` : `$(file) ${item.name}`,
-                description: item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : '',
-                alwaysShow: true,
-                buttons: [
-                  {
-                    iconPath: new vscode.ThemeIcon('cloud-download'),
-                    tooltip: 'Download'
-                  }
-                ],
-                item: item
-              } as any)),
+              ...sortedItems.map(item => {
+                const fullPath = `${currentPath}/${item.name}`.replace(/\/\//g, '/');
+                const uri = vscode.Uri.parse(`scp-remote://${config.host}${fullPath}`);
+                const isDirectory = item.type === 'directory';
+
+                const quickPickItem: any = {
+                  label: supportsResourceUri ? '' : item.name,  // 新版本从 resourceUri 派生，旧版本手动设置
+                  description: item.type === 'file' ? `${(item.size / 1024).toFixed(2)} KB` : '',
+                  iconPath: isDirectory ? vscode.ThemeIcon.Folder : vscode.ThemeIcon.File,
+                  alwaysShow: true,
+                  buttons: [
+                    {
+                      iconPath: new vscode.ThemeIcon('cloud-download'),
+                      tooltip: 'Download'
+                    }
+                  ],
+                  item: item
+                };
+
+                // 仅在支持时添加 resourceUri
+                if (supportsResourceUri) {
+                  quickPickItem.resourceUri = uri;
+                }
+
+                return quickPickItem;
+              }),
             ];
           }
 
