@@ -13,7 +13,8 @@ export class CommandHandler {
   constructor(
     private hostManager: HostManager,
     private authManager: AuthManager,
-    private treeProvider: HostTreeProvider
+    private treeProvider: HostTreeProvider,
+    private readonly treeView: vscode.TreeView<HostTreeItem>
   ) {}
 
   registerCommands(context: vscode.ExtensionContext): void {
@@ -413,25 +414,58 @@ export class CommandHandler {
   }
 
   private async deleteHost(item: HostTreeItem): Promise<void> {
+    // Get all selected items from the tree view
+    const selectedItems = this.treeView.selection;
+
+    // If there are multiple selections, use them; otherwise use the single item
+    const itemsToDelete = selectedItems.length > 1 ? selectedItems : [item];
+
+    if (itemsToDelete.length === 0) {
+      return;
+    }
+
+    // Show confirmation dialog
     const confirm = await vscode.window.showWarningMessage(
-      `Are you sure you want to delete "${item.label}"?`,
+      itemsToDelete.length === 1
+        ? `Are you sure you want to delete "${itemsToDelete[0].label}"?`
+        : `Are you sure you want to delete ${itemsToDelete.length} item(s)?`,
       'Confirm',
       'Cancel'
     );
 
-    if (confirm !== 'Confirm') {return;}
+    if (confirm !== 'Confirm') {
+      return;
+    }
 
     try {
-      if (item.type === 'host') {
-        await this.hostManager.deleteHost(item.data.id);
-      } else {
-        await this.hostManager.deleteGroup(item.data.id);
+      // Separate hosts and groups
+      const hostsToDelete = itemsToDelete.filter(i => i.type === 'host');
+      const groupsToDelete = itemsToDelete.filter(i => i.type === 'group');
+
+      // Delete all selected hosts
+      for (const hostItem of hostsToDelete) {
+        await this.hostManager.deleteHost(hostItem.data.id);
+        logger.info(`Deleted host: ${hostItem.label}`);
+      }
+
+      // Delete all selected groups
+      for (const groupItem of groupsToDelete) {
+        await this.hostManager.deleteGroup(groupItem.data.id);
+        logger.info(`Deleted group: ${groupItem.label}`);
       }
 
       this.treeProvider.refresh();
-      vscode.window.showInformationMessage('Deleted successfully');
+
+      if (itemsToDelete.length === 1) {
+        vscode.window.showInformationMessage('Deleted successfully');
+      } else {
+        const message = `Successfully deleted ${itemsToDelete.length} item(s) (${hostsToDelete.length} host(s), ${groupsToDelete.length} group(s))`;
+        vscode.window.showInformationMessage(message);
+        logger.info(message);
+      }
     } catch (error) {
       vscode.window.showErrorMessage(`Delete failed: ${error}`);
+      logger.error('Delete operation failed', error as Error);
     }
   }
 

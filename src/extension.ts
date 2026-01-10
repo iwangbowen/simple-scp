@@ -23,12 +23,13 @@ export async function activate(context: vscode.ExtensionContext) {
   const treeView = vscode.window.createTreeView('simpleScp.hosts', {
     treeDataProvider: treeProvider,
     showCollapseAll: true,
+    canSelectMany: true,
   });
 
   context.subscriptions.push(treeView);
 
   // Register command handler
-  const commandHandler = new CommandHandler(hostManager, authManager, treeProvider);
+  const commandHandler = new CommandHandler(hostManager, authManager, treeProvider, treeView);
   commandHandler.registerCommands(context);
 
   logger.info('Extension ready');
