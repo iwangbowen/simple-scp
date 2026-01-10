@@ -425,59 +425,64 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     const hostsToDelete = itemsToDelete.filter(i => i.type === 'host');
     const groupsToDelete = itemsToDelete.filter(i => i.type === 'group');
 
-    // Check if any groups have hosts inside
+    // Check if any groups contain hosts
     const allHosts = await this.hostManager.getHosts();
-    let totalHostsInGroups = 0;
-    const groupsWithHosts = groupsToDelete.filter(group => {
-      const hostsInGroup = allHosts.filter(h => h.group === group.data.id);
-      totalHostsInGroups += hostsInGroup.length;
-      return hostsInGroup.length > 0;
-    });
+    const groupsWithHosts = groupsToDelete.filter(group =>
+      allHosts.some(h => h.group === group.data.id)
+    );
 
-    // Ask user what to do with groups that have hosts
-    let deleteHostsInGroups = false;
+    // Determine confirmation dialog type
+    let deleteOnlyGroups = false;
     if (groupsWithHosts.length > 0) {
+      // Modal confirmation for groups with hosts (important operation)
+      const totalHostsInGroups = groupsWithHosts.reduce((count, group) => {
+        return count + allHosts.filter(h => h.group === group.data.id).length;
+      }, 0);
+
       const choice = await vscode.window.showWarningMessage(
         groupsWithHosts.length === 1
           ? `The group "${groupsWithHosts[0].label}" contains ${totalHostsInGroups} host(s). What would you like to do?`
           : `${groupsWithHosts.length} group(s) contain a total of ${totalHostsInGroups} host(s). What would you like to do?`,
         { modal: true },
-        'Delete groups and hosts',
-        'Delete groups only (keep hosts)',
-        'Cancel'
+        'Delete Group Only',
+        'Delete All'
       );
 
-      if (choice === 'Cancel' || !choice) {
-        return;
+      if (!choice) {
+        return; // User cancelled
       }
-      deleteHostsInGroups = choice === 'Delete groups and hosts';
+
+      deleteOnlyGroups = choice === 'Delete Group Only';
+
+      // If user chose "Delete All", we need to delete hosts in those groups too
+      if (!deleteOnlyGroups) {
+        // Add hosts from groups to the deletion list
+        for (const groupItem of groupsWithHosts) {
+          const hostsInGroup = allHosts.filter(h => h.group === groupItem.data.id);
+          for (const host of hostsInGroup) {
+            // Avoid duplicates - don't add if already explicitly selected
+            if (!hostsToDelete.some(h => h.data.id === host.id)) {
+              await this.hostManager.deleteHost(host.id);
+              logger.info(`Deleted host in group: ${host.name}`);
+            }
+          }
+        }
+      }
     } else {
-      // No hosts in groups, just confirm deletion
+      // Non-modal confirmation for empty groups or hosts only
       const confirm = await vscode.window.showWarningMessage(
         itemsToDelete.length === 1
-          ? `Are you sure you want to delete "${itemsToDelete[0].label}"?`
-          : `Are you sure you want to delete ${itemsToDelete.length} item(s)?`,
-        'Confirm',
-        'Cancel'
+          ? `Delete "${itemsToDelete[0].label}"?`
+          : `Delete ${itemsToDelete.length} item(s)?`,
+        'Delete'
       );
 
-      if (confirm !== 'Confirm') {
+      if (!confirm) {
         return;
       }
     }
 
     try {
-      // Delete hosts in groups if user chose to
-      if (deleteHostsInGroups) {
-        for (const groupItem of groupsToDelete) {
-          const hostsInGroup = allHosts.filter(h => h.group === groupItem.data.id);
-          for (const host of hostsInGroup) {
-            await this.hostManager.deleteHost(host.id);
-            logger.info(`Deleted host in group: ${host.name}`);
-          }
-        }
-      }
-
       // Delete all selected hosts
       for (const hostItem of hostsToDelete) {
         await this.hostManager.deleteHost(hostItem.data.id);
@@ -485,6 +490,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       }
 
       // Delete all selected groups
+      // If deleteOnlyGroups is true, hosts in the group will be moved to "ungrouped"
       for (const groupItem of groupsToDelete) {
         await this.hostManager.deleteGroup(groupItem.data.id);
         logger.info(`Deleted group: ${groupItem.label}`);
@@ -495,7 +501,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       if (itemsToDelete.length === 1) {
         vscode.window.showInformationMessage('Deleted successfully');
       } else {
-        const message = `Successfully deleted ${itemsToDelete.length} item(s) (${hostsToDelete.length} host(s), ${groupsToDelete.length} group(s))`;
+        const message = `Successfully deleted ${itemsToDelete.length} item(s)`;
         vscode.window.showInformationMessage(message);
         logger.info(message);
       }
