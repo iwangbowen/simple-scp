@@ -6,20 +6,18 @@
 
 - **Modern File Browser with resourceUri**: Remote file browser now uses VS Code's new QuickPick API features
   - Automatic file/folder icon derivation from current file icon theme (VS Code 1.108+)
-  - Clean display with file names auto-derived from resourceUri
   - Custom URI scheme (`scp-remote://`) for better integration
   - Persistent instructional text with `prompt` property
   - Improved parent directory navigation with arrow-up icon
-  - File size shown in `detail` property
-  - **Correct Implementation**:
-    - `label` set to empty string for resourceUri to derive filename
-    - `iconPath` **not set** when resourceUri is present (VS Code 1.108+)
-    - VS Code automatically derives icon from file icon theme based on resourceUri
-  - **Backward Compatibility**: Smart runtime detection for seamless experience across versions
-    - VS Code 1.108+: Uses `resourceUri` for automatic icon derivation from file icon theme
-    - VS Code 1.85-1.107: Falls back to displaying filename and standard ThemeIcon
-    - Detection via **VS Code version number** check (`vscode.version >= 1.108`)
-    - **Performance optimized**: Detection result cached globally, only checked once per extension session
+  - File size shown in `description` property
+  - **Unified Implementation**:
+    - `resourceUri` set unconditionally for all VS Code versions
+    - `label` set to empty string (resourceUri derives filename in VS Code 1.108+)
+    - `iconPath` set to `ThemeIcon.File`/`ThemeIcon.Folder` (used in VS Code < 1.108)
+  - **Backward Compatibility**: Works seamlessly across all VS Code versions
+    - VS Code 1.108+: Uses `resourceUri` for automatic icon derivation from active file icon theme
+    - VS Code 1.85-1.107: Ignores `resourceUri`, uses `iconPath` with standard file/folder icons
+    - **Simple approach**: Old VS Code versions automatically ignore unknown properties
 
 ### Improved
 
