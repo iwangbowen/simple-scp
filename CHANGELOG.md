@@ -1,5 +1,20 @@
 # Change Log
 
+## [0.8.0] - 2026-01-10
+
+### Added
+
+- **Star/Unstar Hosts**: Toggle star status for hosts to mark favorites
+  - Starred hosts are displayed with a star icon
+  - Starred hosts are sorted to the top of the list
+  - Quick access to frequently used hosts
+  - Star button in host context menu (inline action)
+
+### Improved
+
+- Host sorting: Starred hosts now appear first, followed by alphabetical order
+- Visual distinction for favorite hosts with star icon
+
 ## [0.7.1] - 2026-01-10
 
 ### Changed

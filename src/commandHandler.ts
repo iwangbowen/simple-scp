@@ -31,6 +31,9 @@ export class CommandHandler {
       vscode.commands.registerCommand('simpleScp.moveHostToGroup', (item: HostTreeItem, items?: HostTreeItem[]) =>
         this.moveHostToGroup(item, items)
       ),
+      vscode.commands.registerCommand('simpleScp.toggleStar', (item: HostTreeItem) =>
+        this.toggleStar(item)
+      ),
       vscode.commands.registerCommand('simpleScp.addGroup', () => this.addGroup()),
       vscode.commands.registerCommand('simpleScp.editGroup', (item: HostTreeItem) =>
         this.editGroup(item)
@@ -603,6 +606,32 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to move host(s): ${error}`);
       logger.error('Failed to move host(s)', error as Error);
+    }
+  }
+
+  /**
+   * Toggle star/unstar for a host
+   */
+  private async toggleStar(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'host') {
+      return;
+    }
+
+    const config = item.data as HostConfig;
+
+    try {
+      const newStarred = !config.starred;
+      await this.hostManager.updateHost(config.id, {
+        starred: newStarred,
+      });
+
+      this.treeProvider.refresh();
+
+      const action = newStarred ? 'added to' : 'removed from';
+      logger.info(`Host ${config.name} ${action} starred`);
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to toggle star: ${error}`);
+      logger.error('Failed to toggle star', error as Error);
     }
   }
 

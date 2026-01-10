@@ -2,7 +2,7 @@
   "name": "simple-scp",
   "displayName": "Simple SCP",
   "description": "Lightweight SCP file upload and download tool with cross-device host configuration sync",
-  "version": "0.7.1",
+  "version": "0.8.0",
   "publisher": "WangBowen",
   "icon": "resources/icon.png",
   "license": "MIT",
@@ -148,6 +148,12 @@
         "title": "Move to Group",
         "category": "Simple SCP",
         "icon": "$(folder)"
+      },
+      {
+        "command": "simpleScp.toggleStar",
+        "title": "Toggle Star",
+        "category": "Simple SCP",
+        "icon": "$(star)"
       }
     ],
     "menus": {
@@ -219,6 +225,10 @@
         {
           "command": "simpleScp.moveHostToGroup",
           "when": "false"
+        },
+        {
+          "command": "simpleScp.toggleStar",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -245,9 +255,14 @@
           "group": "inline@1"
         },
         {
-          "command": "simpleScp.testConnection",
+          "command": "simpleScp.toggleStar",
           "when": "view == simpleScp.hosts && viewItem == host",
           "group": "inline@2"
+        },
+        {
+          "command": "simpleScp.testConnection",
+          "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "inline@3"
         },
         {
           "command": "simpleScp.downloadFile",

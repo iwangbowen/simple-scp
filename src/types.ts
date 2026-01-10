@@ -13,6 +13,8 @@ export interface HostConfig {
   defaultRemotePath?: string;
   /** 主机颜色，用于视觉识别 */
   color?: string;
+  /** 是否星标 */
+  starred?: boolean;
 }
 
 /**

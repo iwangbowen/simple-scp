@@ -25,11 +25,12 @@ export class HostTreeItem extends vscode.TreeItem {
       const host = data as HostConfig;
       this.contextValue = 'host';
 
-      // Show different icon based on auth status
+      // Show different icon based on auth status and starred state
       if (hasAuth) {
-        // Server icon with optional user color
+        // Server icon with optional user color, or star icon if starred
+        const iconName = host.starred ? 'star-full' : 'server';
         this.iconPath = new vscode.ThemeIcon(
-          'server',
+          iconName,
           host.color ? new vscode.ThemeColor(`charts.${host.color}`) : undefined
         );
       } else {
@@ -113,8 +114,16 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem> {
       );
     }
 
-    // Add ungrouped hosts
+    // Add ungrouped hosts, starred first
     const ungroupedHosts = hosts.filter((h: HostConfig) => !h.group);
+
+    // Sort: starred hosts first, then by name
+    ungroupedHosts.sort((a, b) => {
+      if (a.starred && !b.starred) {return -1;}
+      if (!a.starred && b.starred) {return 1;}
+      return a.name.localeCompare(b.name);
+    });
+
     for (const host of ungroupedHosts) {
       const hasAuth = await this.authManager.hasAuth(host.id);
       items.push(
@@ -134,6 +143,13 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem> {
   private async getHostsInGroup(groupId: string): Promise<HostTreeItem[]> {
     const hosts = await this.hostManager.getHosts();
     const groupHosts = hosts.filter((h: HostConfig) => h.group === groupId);
+
+    // Sort: starred hosts first, then by name
+    groupHosts.sort((a, b) => {
+      if (a.starred && !b.starred) {return -1;}
+      if (!a.starred && b.starred) {return 1;}
+      return a.name.localeCompare(b.name);
+    });
 
     const items: HostTreeItem[] = [];
     for (const host of groupHosts) {
