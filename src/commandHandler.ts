@@ -1408,7 +1408,13 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     if (!remotePath) {return;}
 
     // Select local save path
-    const defaultUri = vscode.workspace.workspaceFolders?.[0]?.uri;
+    const remoteFileName = path.basename(remotePath.path);
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const defaultPath = workspaceFolder
+      ? path.join(workspaceFolder, remoteFileName)
+      : remoteFileName;
+    const defaultUri = vscode.Uri.file(defaultPath);
+
     const saveUri = await vscode.window.showSaveDialog({
       defaultUri,
       title: 'Select download location',
