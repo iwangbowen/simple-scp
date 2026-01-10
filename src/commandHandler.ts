@@ -944,13 +944,20 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       quickPick.busy = true;
       quickPick.title = title;
 
-      // Add toggle button for download mode
+      // Add buttons based on mode
       const updateButtons = () => {
         if (mode === 'browseFiles') {
           quickPick.buttons = [
             {
               iconPath: new vscode.ThemeIcon(showDotFiles ? 'eye' : 'eye-closed'),
               tooltip: showDotFiles ? 'Hide dot files' : 'Show dot files'
+            }
+          ];
+        } else if (mode === 'selectPath') {
+          quickPick.buttons = [
+            {
+              iconPath: new vscode.ThemeIcon('cloud-upload'),
+              tooltip: 'Upload to current folder'
             }
           ];
         }
@@ -1103,14 +1110,20 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
         }, 300);
       });
 
-      // Handle QuickPick button click (toggle dot files)
-      if (mode === 'browseFiles') {
-        quickPick.onDidTriggerButton(async () => {
+      // Handle QuickPick button click
+      quickPick.onDidTriggerButton(async () => {
+        if (mode === 'browseFiles') {
+          // Toggle dot files
           showDotFiles = !showDotFiles;
           updateButtons();
           loadDirectory(currentPath, false);
-        });
-      }
+        } else if (mode === 'selectPath') {
+          // Upload to current folder
+          logger.info(`Selected current folder for upload: ${currentPath}`);
+          quickPick.hide();
+          resolve(currentPath);
+        }
+      });
 
       // Handle item button click
       quickPick.onDidTriggerItemButton(async (event) => {
