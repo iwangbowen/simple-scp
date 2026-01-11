@@ -1963,9 +1963,13 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
     const remotePath = result;
 
+    // Get folder name as default bookmark name
+    const folderName = path.basename(remotePath);
+
     // Ask for bookmark name
     const name = await vscode.window.showInputBox({
       prompt: 'Enter bookmark name',
+      value: folderName, // Default to folder name
       placeHolder: 'e.g., Project Files',
       validateInput: (value) => {
         if (!value || !value.trim()) {
