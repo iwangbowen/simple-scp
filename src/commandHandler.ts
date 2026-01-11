@@ -1569,6 +1569,12 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
             );
           } else {
             logger.info(`Downloading file: ${remotePath.path}`);
+
+            // Track download speed
+            let startTime = Date.now();
+            let lastTransferred = 0;
+            let lastTime = startTime;
+
             await SshConnectionManager.downloadFile(
               config,
               authConfig,
@@ -1576,10 +1582,33 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
               localPath,
               (transferred, total) => {
                 const percentage = Math.round((transferred / total) * 100);
-                progress.report({
-                  message: `${percentage}%`,
-                  increment: percentage,
-                });
+                const currentTime = Date.now();
+                const elapsed = (currentTime - lastTime) / 1000; // seconds
+
+                // Calculate speed (bytes per second)
+                if (elapsed > 0.5) { // Update speed every 0.5 seconds
+                  const bytesTransferred = transferred - lastTransferred;
+                  const speed = bytesTransferred / elapsed;
+                  const formattedSpeed = this.formatSpeed(speed);
+
+                  // Calculate remaining time
+                  const remaining = total - transferred;
+                  const remainingTime = remaining / speed;
+                  const formattedTime = this.formatRemainingTime(remainingTime);
+
+                  progress.report({
+                    message: `${percentage}% - ${formattedSpeed} - ETA: ${formattedTime}`,
+                    increment: percentage,
+                  });
+
+                  lastTransferred = transferred;
+                  lastTime = currentTime;
+                } else {
+                  progress.report({
+                    message: `${percentage}%`,
+                    increment: percentage,
+                  });
+                }
               }
             );
           }
@@ -1759,6 +1788,12 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
             );
           } else {
             logger.info(`Downloading file: ${remotePath.path}`);
+
+            // Track download speed
+            let startTime = Date.now();
+            let lastTransferred = 0;
+            let lastTime = startTime;
+
             await SshConnectionManager.downloadFile(
               config,
               authConfig,
@@ -1766,10 +1801,33 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
               localPath,
               (transferred, total) => {
                 const percentage = Math.round((transferred / total) * 100);
-                progress.report({
-                  message: `${percentage}%`,
-                  increment: percentage,
-                });
+                const currentTime = Date.now();
+                const elapsed = (currentTime - lastTime) / 1000; // seconds
+
+                // Calculate speed (bytes per second)
+                if (elapsed > 0.5) { // Update speed every 0.5 seconds
+                  const bytesTransferred = transferred - lastTransferred;
+                  const speed = bytesTransferred / elapsed;
+                  const formattedSpeed = this.formatSpeed(speed);
+
+                  // Calculate remaining time
+                  const remaining = total - transferred;
+                  const remainingTime = remaining / speed;
+                  const formattedTime = this.formatRemainingTime(remainingTime);
+
+                  progress.report({
+                    message: `${percentage}% - ${formattedSpeed} - ETA: ${formattedTime}`,
+                    increment: percentage,
+                  });
+
+                  lastTransferred = transferred;
+                  lastTime = currentTime;
+                } else {
+                  progress.report({
+                    message: `${percentage}%`,
+                    increment: percentage,
+                  });
+                }
               }
             );
           }
@@ -1815,5 +1873,43 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
   private showLogs(): void {
     logger.show();
+  }
+
+  /**
+   * Format transfer speed based on configuration
+   */
+  private formatSpeed(bytesPerSecond: number): string {
+    const config = vscode.workspace.getConfiguration('simpleScp');
+    const speedUnit = config.get<string>('speedUnit', 'auto');
+
+    if (speedUnit === 'KB') {
+      return `${(bytesPerSecond / 1024).toFixed(2)} KB/s`;
+    } else if (speedUnit === 'MB') {
+      return `${(bytesPerSecond / 1024 / 1024).toFixed(2)} MB/s`;
+    } else {
+      // auto mode
+      if (bytesPerSecond >= 1024 * 1024) {
+        return `${(bytesPerSecond / 1024 / 1024).toFixed(2)} MB/s`;
+      } else {
+        return `${(bytesPerSecond / 1024).toFixed(2)} KB/s`;
+      }
+    }
+  }
+
+  /**
+   * Format remaining time
+   */
+  private formatRemainingTime(seconds: number): string {
+    if (seconds < 60) {
+      return `${Math.round(seconds)}s`;
+    } else if (seconds < 3600) {
+      const minutes = Math.floor(seconds / 60);
+      const secs = Math.round(seconds % 60);
+      return `${minutes}m ${secs}s`;
+    } else {
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      return `${hours}h ${minutes}m`;
+    }
   }
 }

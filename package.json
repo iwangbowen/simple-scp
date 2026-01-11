@@ -347,6 +347,12 @@
           "type": "boolean",
           "default": true,
           "description": "Show hidden files and directories (dot files) when browsing remote files"
+        },
+        "simpleScp.speedUnit": {
+          "type": "string",
+          "enum": ["auto", "KB", "MB"],
+          "default": "auto",
+          "description": "Download speed display unit. 'auto' will automatically choose between KB/s and MB/s based on speed"
         }
       }
     }
