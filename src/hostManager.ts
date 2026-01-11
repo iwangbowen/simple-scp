@@ -239,7 +239,7 @@ export class HostManager {
    */
   private async loadData(): Promise<StorageData> {
     const data = this.context.globalState.get<StorageData>(HostManager.STORAGE_KEY);
-    return data || { hosts: [], groups: [], recentUploads: [] };
+    return data || { hosts: [], groups: [], recentUsed: [] };
   }
 
   /**
@@ -250,34 +250,32 @@ export class HostManager {
   }
 
   /**
-   * Record a host as recently uploaded to
+   * Record a host as recently used (for upload or download)
    */
-  async recordRecentUpload(hostId: string): Promise<void> {
+  async recordRecentUsed(hostId: string): Promise<void> {
     const data = await this.loadData();
-    if (!data.recentUploads) {
-      data.recentUploads = [];
-    }
+    data.recentUsed ??= [];
 
     // Remove if already exists
-    data.recentUploads = data.recentUploads.filter(id => id !== hostId);
+    data.recentUsed = data.recentUsed.filter(id => id !== hostId);
 
     // Add to front
-    data.recentUploads.unshift(hostId);
+    data.recentUsed.unshift(hostId);
 
     // Keep only last 5
-    if (data.recentUploads.length > 5) {
-      data.recentUploads = data.recentUploads.slice(0, 5);
+    if (data.recentUsed.length > 5) {
+      data.recentUsed = data.recentUsed.slice(0, 5);
     }
 
     await this.saveData(data);
   }
 
   /**
-   * Get recent upload host IDs
+   * Get recently used host IDs (for upload or download)
    */
-  async getRecentUploads(): Promise<string[]> {
+  async getRecentUsed(): Promise<string[]> {
     const data = await this.loadData();
-    return data.recentUploads || [];
+    return data.recentUsed || [];
   }
 
   /**

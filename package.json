@@ -108,6 +108,11 @@
         "icon": "$(cloud-download)"
       },
       {
+        "command": "simpleScp.downloadToLocal",
+        "title": "Download from Remote Host to Here",
+        "category": "Simple SCP"
+      },
+      {
         "command": "simpleScp.setupPasswordlessLogin",
         "title": "Setup Passwordless Login",
         "category": "Simple SCP",
@@ -184,6 +189,10 @@
         },
         {
           "command": "simpleScp.downloadFile",
+          "when": "false"
+        },
+        {
+          "command": "simpleScp.downloadToLocal",
           "when": "false"
         },
         {
@@ -314,12 +323,20 @@
         {
           "command": "simpleScp.uploadFile",
           "group": "2_workspace@1"
+        },
+        {
+          "command": "simpleScp.downloadToLocal",
+          "group": "2_workspace@2"
         }
       ],
       "editor/context": [
         {
           "command": "simpleScp.uploadFile",
           "group": "2_workspace@1"
+        },
+        {
+          "command": "simpleScp.downloadToLocal",
+          "group": "2_workspace@2"
         }
       ]
     },

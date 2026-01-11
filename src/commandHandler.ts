@@ -47,6 +47,9 @@ export class CommandHandler {
       vscode.commands.registerCommand('simpleScp.downloadFile', (item: HostTreeItem) =>
         this.downloadFile(item)
       ),
+      vscode.commands.registerCommand('simpleScp.downloadToLocal', (uri: vscode.Uri) =>
+        this.downloadToLocal(uri)
+      ),
       vscode.commands.registerCommand('simpleScp.setupPasswordlessLogin', (item: HostTreeItem) =>
         this.setupPasswordlessLogin(item)
       ),
@@ -827,7 +830,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     }
 
     const groups = await this.hostManager.getGroups();
-    const recentUploadIds = await this.hostManager.getRecentUploads();
+    const recentUsedIds = await this.hostManager.getRecentUsed();
 
     // Build group map for quick lookup
     const groupMap = new Map(groups.map(g => [g.id, g.name]));
@@ -837,7 +840,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       hosts.map(async h => {
         const hasAuth = await this.authManager.hasAuth(h.id);
         const groupName = h.group ? groupMap.get(h.group) : undefined;
-        const isRecent = recentUploadIds.includes(h.id);
+        const isRecent = recentUsedIds.includes(h.id);
 
         return {
           label: `$(${hasAuth ? 'server' : 'warning'}) ${h.name}`,
@@ -854,8 +857,8 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     const recentItems = allHostItems
       .filter(item => item.isRecent)
       .sort((a, b) => {
-        const aIndex = recentUploadIds.indexOf(a.host.id);
-        const bIndex = recentUploadIds.indexOf(b.host.id);
+        const aIndex = recentUsedIds.indexOf(a.host.id);
+        const bIndex = recentUsedIds.indexOf(b.host.id);
         return aIndex - bIndex;
       });
 
@@ -874,7 +877,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     if (recentItems.length > 0) {
       quickPickItems.push(
         {
-          label: 'Recently Uploaded',
+          label: 'Recently Used',
           kind: vscode.QuickPickItemKind.Separator
         } as vscode.QuickPickItem,
         ...recentItems
@@ -976,8 +979,8 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
           logger.info(`✓ Upload successful: ${finalRemotePath}`);
           vscode.window.showInformationMessage(`Upload successful: ${finalRemotePath}`);
 
-          // Record this host as recently uploaded to
-          await this.hostManager.recordRecentUpload(config.id);
+          // Record this host as recently used
+          await this.hostManager.recordRecentUsed(config.id);
         } catch (error) {
           logger.error(`✗ Upload failed: ${localPath}`, error as Error);
 
@@ -1578,6 +1581,196 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
           logger.info(`✓ Download successful: ${localPath}`);
           vscode.window.showInformationMessage(`Download successful: ${localPath}`);
+
+          // Record this host as recently used
+          await this.hostManager.recordRecentUsed(config.id);
+        } catch (error) {
+          logger.error(`✗ Download failed: ${remotePath.path}`, error as Error);
+
+          const openLogs = 'View Logs';
+          const choice = await vscode.window.showErrorMessage(
+            `Download failed: ${error}`,
+            openLogs
+          );
+
+          if (choice === openLogs) {
+            logger.show();
+          }
+        }
+      }
+    );
+  }
+
+  /**
+   * Download file or folder from remote host to a local path selected in explorer
+   */
+  private async downloadToLocal(uri: vscode.Uri): Promise<void> {
+    const localBasePath = uri.fsPath;
+    const stat = fs.statSync(localBasePath);
+
+    // Determine the target directory
+    const targetDir = stat.isDirectory() ? localBasePath : path.dirname(localBasePath);
+
+    const hosts = await this.hostManager.getHosts();
+    if (hosts.length === 0) {
+      vscode.window.showWarningMessage('Please add host configuration first');
+      return;
+    }
+
+    const groups = await this.hostManager.getGroups();
+    const recentUsedIds = await this.hostManager.getRecentUsed();
+
+    // Build group map for quick lookup
+    const groupMap = new Map(groups.map(g => [g.id, g.name]));
+
+    // Check authentication status for each host
+    const allHostItems = await Promise.all(
+      hosts.map(async h => {
+        const hasAuth = await this.authManager.hasAuth(h.id);
+        const groupName = h.group ? groupMap.get(h.group) : undefined;
+        const isRecent = recentUsedIds.includes(h.id);
+
+        return {
+          label: `$(${hasAuth ? 'server' : 'warning'}) ${h.name}`,
+          description: `${h.username}@${h.host}:${h.port}`,
+          detail: groupName ? `Group: ${groupName}` : undefined,
+          host: h,
+          hasAuth,
+          isRecent,
+        };
+      })
+    );
+
+    // Split into recent and other hosts
+    const recentItems = allHostItems
+      .filter(item => item.isRecent)
+      .sort((a, b) => {
+        const aIndex = recentUsedIds.indexOf(a.host.id);
+        const bIndex = recentUsedIds.indexOf(b.host.id);
+        return aIndex - bIndex;
+      });
+
+    const otherItems = allHostItems
+      .filter(item => !item.isRecent)
+      .sort((a, b) => {
+        // Sort by auth status first, then by name
+        if (a.hasAuth && !b.hasAuth) {return -1;}
+        if (!a.hasAuth && b.hasAuth) {return 1;}
+        return a.host.name.localeCompare(b.host.name);
+      });
+
+    // Build QuickPick items with separator
+    const quickPickItems: any[] = [];
+
+    if (recentItems.length > 0) {
+      quickPickItems.push(
+        {
+          label: 'Recently Used',
+          kind: vscode.QuickPickItemKind.Separator
+        } as vscode.QuickPickItem,
+        ...recentItems
+      );
+    }
+
+    if (otherItems.length > 0) {
+      if (recentItems.length > 0) {
+        quickPickItems.push({
+          label: 'All Hosts',
+          kind: vscode.QuickPickItemKind.Separator
+        } as vscode.QuickPickItem);
+      }
+      quickPickItems.push(...otherItems);
+    }
+
+    const selectedHost = await vscode.window.showQuickPick(
+      quickPickItems,
+      { placeHolder: 'Select source host' }
+    );
+
+    if (!selectedHost || selectedHost.kind === vscode.QuickPickItemKind.Separator) {
+      return;
+    }
+
+    const config = selectedHost.host;
+
+    // Check authentication
+    const authConfig = await this.authManager.getAuth(config.id);
+    if (!authConfig) {
+      const configure = 'Configure Authentication';
+      const cancel = 'Cancel';
+      const choice = await vscode.window.showWarningMessage(
+        `No authentication configured for ${config.name}. Configure now?`,
+        configure,
+        cancel
+      );
+
+      if (choice === configure) {
+        const success = await this.configureAuthForHost(config.id);
+        if (!success) {
+          return;
+        }
+        // Recursively call downloadToLocal after configuring auth
+        return this.downloadToLocal(uri);
+      }
+      return;
+    }
+
+    // Select remote file or directory to download
+    const remotePath = await this.selectRemoteFileOrDirectory(config, authConfig);
+    if (!remotePath) {return;}
+
+    const remoteFileName = path.basename(remotePath.path);
+    const localPath = path.join(targetDir, remoteFileName);
+
+    logger.info(
+      `Starting download: ${config.username}@${config.host}:${remotePath.path} → ${localPath}`
+    );
+
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: remotePath.isDirectory ? 'Downloading folder' : 'Downloading file',
+        cancellable: false,
+      },
+      async progress => {
+        try {
+          if (remotePath.isDirectory) {
+            logger.info(`Downloading directory: ${remotePath.path}`);
+            await SshConnectionManager.downloadDirectory(
+              config,
+              authConfig,
+              remotePath.path,
+              localPath,
+              (currentFile, percentage) => {
+                logger.debug(`Downloading ${currentFile} (${percentage}%)`);
+                progress.report({
+                  message: `${currentFile} (${percentage}%)`,
+                  increment: 1,
+                });
+              }
+            );
+          } else {
+            logger.info(`Downloading file: ${remotePath.path}`);
+            await SshConnectionManager.downloadFile(
+              config,
+              authConfig,
+              remotePath.path,
+              localPath,
+              (transferred, total) => {
+                const percentage = Math.round((transferred / total) * 100);
+                progress.report({
+                  message: `${percentage}%`,
+                  increment: percentage,
+                });
+              }
+            );
+          }
+
+          logger.info(`✓ Download successful: ${localPath}`);
+          vscode.window.showInformationMessage(`Download successful: ${localPath}`);
+
+          // Record this host as recently used
+          await this.hostManager.recordRecentUsed(config.id);
         } catch (error) {
           logger.error(`✗ Download failed: ${remotePath.path}`, error as Error);
 
