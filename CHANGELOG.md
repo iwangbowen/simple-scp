@@ -1,5 +1,19 @@
 # Change Log
 
+## [0.9.0] - 2026-01-11
+
+### Added
+
+- **Recent Path Memory**: Automatically remembers last 10 visited paths per host, auto-locates on next browse
+- **Path Bookmarks**: Add bookmarks as host sub-nodes in tree view for quick access to frequently used directories
+- **Download Progress UI**: Replaced notification with status bar display showing speed, progress, and ETA in tooltip
+
+### Improved
+
+- **Configurable Speed Unit**: Choose auto/KB/MB for download speed display
+- **Smart File Size Format**: Auto-select appropriate unit (B/KB/MB/GB/TB) based on file size
+- **Reduced UI Flicker**: 5-second update interval for status bar to minimize visual distraction
+
 ## [0.8.1] - 2026-01-10
 
 ### Enhanced
