@@ -1256,6 +1256,11 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
           logger.info(`Selected current folder for upload: ${currentPath}`);
           quickPick.hide();
           resolve(currentPath);
+        } else if (mode === 'selectBookmark') {
+          // Add bookmark for current folder
+          logger.info(`Selected current folder for bookmark: ${currentPath}`);
+          quickPick.hide();
+          resolve(currentPath);
         }
       });
 
@@ -1281,6 +1286,14 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
           if (selected.dirName) {
             const targetPath = `${currentPath}/${selected.dirName}`.replace(/\/\//g, '/');
             logger.info(`Selected for upload via button: ${targetPath}`);
+            quickPick.hide();
+            resolve(targetPath);
+          }
+        } else if (mode === 'selectBookmark') {
+          // Bookmark button
+          if (selected.dirName) {
+            const targetPath = `${currentPath}/${selected.dirName}`.replace(/\/\//g, '/');
+            logger.info(`Selected directory for bookmark via button: ${targetPath}`);
             quickPick.hide();
             resolve(targetPath);
           }
@@ -1311,7 +1324,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
               isDirectory: false
             });
           }
-        } else if (mode === 'selectPath' && selected.dirName) {
+        } else if ((mode === 'selectPath' || mode === 'selectBookmark') && selected.dirName) {
           const targetPath = `${currentPath}/${selected.dirName}`.replace(/\/\//g, '/');
           loadDirectory(targetPath);
         }
