@@ -70,6 +70,15 @@ export class CommandHandler {
       vscode.commands.registerCommand('simpleScp.copySshCommand', (item: HostTreeItem) =>
         this.copySshCommand(item)
       ),
+      vscode.commands.registerCommand('simpleScp.addBookmark', (item: HostTreeItem) =>
+        this.addBookmark(item)
+      ),
+      vscode.commands.registerCommand('simpleScp.deleteBookmark', (item: HostTreeItem) =>
+        this.deleteBookmark(item)
+      ),
+      vscode.commands.registerCommand('simpleScp.browseBookmark', (item: HostTreeItem) =>
+        this.browseBookmark(item)
+      ),
       vscode.commands.registerCommand('simpleScp.refresh', () => this.refresh()),
       vscode.commands.registerCommand('simpleScp.showLogs', () => this.showLogs())
     );
@@ -1019,7 +1028,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
   private async browseRemoteFilesGeneric(
     config: HostConfig,
     authConfig: HostAuthConfig,
-    mode: 'selectPath' | 'browseFiles',
+    mode: 'selectPath' | 'browseFiles' | 'selectBookmark',
     title: string
   ): Promise<string | { path: string; isDirectory: boolean } | undefined> {
     // Get recent paths for this host
@@ -1040,6 +1049,8 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       // Add prompt for persistent instructional text
       quickPick.prompt = mode === 'selectPath'
         ? 'Navigate using arrows or type a path ending with /'
+        : mode === 'selectBookmark'
+        ? 'Navigate to the directory you want to bookmark'
         : 'Select a file or folder to download';
 
       // Add buttons based on mode
@@ -1056,6 +1067,13 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
             {
               iconPath: new vscode.ThemeIcon('cloud-upload'),
               tooltip: 'Upload to current folder'
+            }
+          ];
+        } else if (mode === 'selectBookmark') {
+          quickPick.buttons = [
+            {
+              iconPath: new vscode.ThemeIcon('bookmark'),
+              tooltip: 'Add bookmark for current folder'
             }
           ];
         }
@@ -1075,8 +1093,8 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
           let quickPickItems: vscode.QuickPickItem[];
 
-          if (mode === 'selectPath') {
-            // For path selection, only show directories
+          if (mode === 'selectPath' || mode === 'selectBookmark') {
+            // For path selection or bookmark selection, only show directories
             const directories = await SshConnectionManager.listRemoteDirectory(config, authConfig, currentPath);
             logger.debug(`Found ${directories.length} directories in ${currentPath}`);
 
@@ -1087,6 +1105,12 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
             // Sort directories alphabetically
             const sortedDirs = [...filteredDirs].sort((a, b) => a.localeCompare(b));
+
+            // Determine button icon and tooltip based on mode
+            const buttonIcon = mode === 'selectBookmark' ? 'bookmark' : 'cloud-upload';
+            const buttonTooltip = mode === 'selectBookmark'
+              ? 'Add bookmark for this directory'
+              : 'Upload to this directory';
 
             quickPickItems = [
               {
@@ -1099,13 +1123,13 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
                 return {
                   label: dir,
                   description: '',
-                  resourceUri: vscode.Uri.parse(`scp-remote://${config.host}${fullPath}`),  // 新版本使用，旧版本自动忽略
-                  iconPath: vscode.ThemeIcon.Folder,  // 新版本触发主题图标，旧版本显示标准图标
+                  resourceUri: vscode.Uri.parse(`scp-remote://${config.host}${fullPath}`),  // 新版本使用,旧版本自动忽略
+                  iconPath: vscode.ThemeIcon.Folder,  // 新版本触发主题图标,旧版本显示标准图标
                   alwaysShow: true,
                   buttons: [
                     {
-                      iconPath: new vscode.ThemeIcon('cloud-upload'),
-                      tooltip: 'Upload to this directory'
+                      iconPath: new vscode.ThemeIcon(buttonIcon),
+                      tooltip: buttonTooltip
                     }
                   ],
                   dirName: dir
@@ -1892,6 +1916,138 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
   private showLogs(): void {
     logger.show();
+  }
+
+  /**
+   * Add a bookmark for a host
+   */
+  private async addBookmark(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'host') {
+      vscode.window.showWarningMessage('Please select a host');
+      return;
+    }
+
+    const host = item.data as HostConfig;
+
+    // Check authentication
+    const authConfig = await this.authManager.getAuth(host.id);
+    if (!authConfig) {
+      vscode.window.showWarningMessage(`No authentication configured for ${host.name}`);
+      return;
+    }
+
+    // Browse for remote path
+    const result = await this.browseRemoteFilesGeneric(
+      host,
+      authConfig,
+      'selectBookmark',
+      'Select Directory to Bookmark'
+    );
+
+    if (!result || typeof result !== 'string') {
+      return;
+    }
+
+    const remotePath = result;
+
+    // Ask for bookmark name
+    const name = await vscode.window.showInputBox({
+      prompt: 'Enter bookmark name',
+      placeHolder: 'e.g., Project Files',
+      validateInput: (value) => {
+        if (!value || !value.trim()) {
+          return 'Bookmark name cannot be empty';
+        }
+        return null;
+      }
+    });
+
+    if (!name) {
+      return;
+    }
+
+    try {
+      await this.hostManager.addBookmark(host.id, name.trim(), remotePath);
+      vscode.window.showInformationMessage(`Bookmark '${name}' added successfully`);
+      this.treeProvider.refresh();
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to add bookmark: ${error}`);
+    }
+  }
+
+  /**
+   * Delete a bookmark
+   */
+  private async deleteBookmark(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'bookmark') {
+      vscode.window.showWarningMessage('Please select a bookmark');
+      return;
+    }
+
+    const bookmark = item.data as import('./types').PathBookmark;
+    const hostId = item.hostId;
+
+    if (!hostId) {
+      return;
+    }
+
+    const confirm = await vscode.window.showWarningMessage(
+      `Delete bookmark '${bookmark.name}'?`,
+      { modal: true },
+      'Delete'
+    );
+
+    if (confirm !== 'Delete') {
+      return;
+    }
+
+    await this.hostManager.removeBookmark(hostId, bookmark.name);
+    vscode.window.showInformationMessage(`Bookmark '${bookmark.name}' deleted`);
+    this.treeProvider.refresh();
+  }
+
+  /**
+   * Browse files from a bookmark
+   */
+  private async browseBookmark(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'bookmark') {
+      vscode.window.showWarningMessage('Please select a bookmark');
+      return;
+    }
+
+    const bookmark = item.data as import('./types').PathBookmark;
+    const hostId = item.hostId;
+
+    if (!hostId) {
+      return;
+    }
+
+    // Get host config
+    const hosts = await this.hostManager.getHosts();
+    const host = hosts.find(h => h.id === hostId);
+
+    if (!host) {
+      vscode.window.showWarningMessage('Host not found');
+      return;
+    }
+
+    // Check authentication
+    const authConfig = await this.authManager.getAuth(host.id);
+    if (!authConfig) {
+      vscode.window.showWarningMessage(`No authentication configured for ${host.name}`);
+      return;
+    }
+
+    // Browse from bookmark path
+    // First, update the recent path to the bookmark path
+    await this.hostManager.recordRecentPath(host.id, bookmark.path);
+
+    await this.browseRemoteFilesGeneric(
+      host,
+      authConfig,
+      'browseFiles',
+      `Browse: ${bookmark.name}`
+    );
   }
 
   /**

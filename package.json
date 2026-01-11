@@ -143,6 +143,24 @@
         "icon": "$(copy)"
       },
       {
+        "command": "simpleScp.addBookmark",
+        "title": "Add Bookmark",
+        "category": "Simple SCP",
+        "icon": "$(bookmark)"
+      },
+      {
+        "command": "simpleScp.deleteBookmark",
+        "title": "Delete Bookmark",
+        "category": "Simple SCP",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "simpleScp.browseBookmark",
+        "title": "Browse Files",
+        "category": "Simple SCP",
+        "icon": "$(folder-opened)"
+      },
+      {
         "command": "simpleScp.showLogs",
         "title": "Show Output Logs",
         "category": "Simple SCP",
@@ -224,6 +242,18 @@
           "when": "false"
         },
         {
+          "command": "simpleScp.addBookmark",
+          "when": "false"
+        },
+        {
+          "command": "simpleScp.deleteBookmark",
+          "when": "false"
+        },
+        {
+          "command": "simpleScp.browseBookmark",
+          "when": "false"
+        },
+        {
           "command": "simpleScp.addHostToGroup",
           "when": "false"
         },
@@ -299,8 +329,23 @@
           "group": "2_actions@4"
         },
         {
+          "command": "simpleScp.addBookmark",
+          "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "3_bookmarks@1"
+        },
+        {
           "command": "simpleScp.deleteHost",
           "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "9_danger@1"
+        },
+        {
+          "command": "simpleScp.browseBookmark",
+          "when": "view == simpleScp.hosts && viewItem == bookmark",
+          "group": "inline@1"
+        },
+        {
+          "command": "simpleScp.deleteBookmark",
+          "when": "view == simpleScp.hosts && viewItem == bookmark",
           "group": "9_danger@1"
         },
         {

@@ -315,6 +315,82 @@ export class HostManager {
   }
 
   /**
+   * Add a path bookmark for a specific host
+   */
+  async addBookmark(hostId: string, name: string, path: string): Promise<void> {
+    const data = await this.loadData();
+    const host = data.hosts.find(h => h.id === hostId);
+
+    if (!host) {
+      throw new Error(`Host not found: ${hostId}`);
+    }
+
+    host.bookmarks ??= [];
+
+    // Check if bookmark with same name already exists
+    if (host.bookmarks.some(b => b.name === name)) {
+      throw new Error(`Bookmark with name '${name}' already exists`);
+    }
+
+    host.bookmarks.push({ name, path });
+    await this.saveData(data);
+  }
+
+  /**
+   * Remove a path bookmark for a specific host
+   */
+  async removeBookmark(hostId: string, name: string): Promise<void> {
+    const data = await this.loadData();
+    const host = data.hosts.find(h => h.id === hostId);
+
+    if (!host) {
+      return;
+    }
+
+    if (!host.bookmarks) {
+      return;
+    }
+
+    host.bookmarks = host.bookmarks.filter(b => b.name !== name);
+    await this.saveData(data);
+  }
+
+  /**
+   * Get all bookmarks for a specific host
+   */
+  async getBookmarks(hostId: string): Promise<Array<{ name: string; path: string }>> {
+    const data = await this.loadData();
+    const host = data.hosts.find(h => h.id === hostId);
+    return host?.bookmarks || [];
+  }
+
+  /**
+   * Update a bookmark (rename or change path)
+   */
+  async updateBookmark(hostId: string, oldName: string, newName: string, newPath: string): Promise<void> {
+    const data = await this.loadData();
+    const host = data.hosts.find(h => h.id === hostId);
+
+    if (!host || !host.bookmarks) {
+      return;
+    }
+
+    const bookmark = host.bookmarks.find(b => b.name === oldName);
+    if (!bookmark) {
+      return;
+    }
+
+    // Check if new name conflicts with existing bookmark (excluding the one being updated)
+    if (newName !== oldName && host.bookmarks.some(b => b.name === newName)) {
+      throw new Error(`Bookmark with name '${newName}' already exists`);
+    }
+
+    bookmark.name = newName;
+    bookmark.path = newPath;
+    await this.saveData(data);
+  }
+
+  /**
    * Generate unique ID
    */
   private generateId(): string {

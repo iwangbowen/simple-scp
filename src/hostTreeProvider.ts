@@ -1,12 +1,12 @@
 import * as vscode from 'vscode';
-import { HostConfig, GroupConfig } from './types';
+import { HostConfig, GroupConfig, PathBookmark } from './types';
 import { HostManager } from './hostManager';
 import { AuthManager } from './authManager';
 
 /**
  * TreeView 项类型
  */
-export type TreeItemType = 'group' | 'host';
+export type TreeItemType = 'group' | 'host' | 'bookmark';
 
 /**
  * TreeView 数据项
@@ -15,9 +15,10 @@ export class HostTreeItem extends vscode.TreeItem {
   constructor(
     public readonly label: string,
     public readonly type: TreeItemType,
-    public readonly data: HostConfig | GroupConfig,
+    public readonly data: HostConfig | GroupConfig | PathBookmark,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-    public readonly hasAuth: boolean = true // Whether authentication is configured
+    public readonly hasAuth: boolean = true, // Whether authentication is configured
+    public readonly hostId?: string // Host ID for bookmark items
   ) {
     super(label, collapsibleState);
 
@@ -50,6 +51,12 @@ export class HostTreeItem extends vscode.TreeItem {
       this.tooltip = this.generateTooltip(host, hasAuth);
       // Remove command so clicking host doesn't open edit dialog
       // User can still edit via context menu
+    } else if (type === 'bookmark') {
+      const bookmark = data as PathBookmark;
+      this.contextValue = 'bookmark';
+      this.iconPath = new vscode.ThemeIcon('bookmark');
+      this.description = bookmark.path;
+      this.tooltip = `Path: ${bookmark.path}`;
     } else {
       this.contextValue = 'group';
       this.iconPath = new vscode.ThemeIcon('folder');
@@ -93,11 +100,15 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem> {
 
   async getChildren(element?: HostTreeItem): Promise<HostTreeItem[]> {
     if (!element) {
-      // 根节点：显示分组和未分组的主机
+      // 根节点:显示分组和未分组的主机
       return this.getRootItems();
     } else if (element.type === 'group') {
-      // 分组节点：显示该分组下的主机
+      // 分组节点:显示该分组下的主机
       return this.getHostsInGroup(element.data.id);
+    } else if (element.type === 'host') {
+      // 主机节点:显示该主机的书签
+      const host = element.data as HostConfig;
+      return this.getBookmarksForHost(host.id);
     }
     return [];
   }
@@ -131,12 +142,18 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem> {
 
     for (const host of ungroupedHosts) {
       const hasAuth = await this.authManager.hasAuth(host.id);
+      const bookmarks = await this.hostManager.getBookmarks(host.id);
+      // Host is collapsible if it has bookmarks
+      const collapsibleState = bookmarks.length > 0
+        ? vscode.TreeItemCollapsibleState.Collapsed
+        : vscode.TreeItemCollapsibleState.None;
+
       items.push(
         new HostTreeItem(
           host.name,
           'host',
           host,
-          vscode.TreeItemCollapsibleState.None,
+          collapsibleState,
           hasAuth
         )
       );
@@ -159,17 +176,37 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem> {
     const items: HostTreeItem[] = [];
     for (const host of groupHosts) {
       const hasAuth = await this.authManager.hasAuth(host.id);
+      const bookmarks = await this.hostManager.getBookmarks(host.id);
+      // Host is collapsible if it has bookmarks
+      const collapsibleState = bookmarks.length > 0
+        ? vscode.TreeItemCollapsibleState.Collapsed
+        : vscode.TreeItemCollapsibleState.None;
+
       items.push(
         new HostTreeItem(
           host.name,
           'host',
           host,
-          vscode.TreeItemCollapsibleState.None,
+          collapsibleState,
           hasAuth
         )
       );
     }
 
     return items;
+  }
+
+  private async getBookmarksForHost(hostId: string): Promise<HostTreeItem[]> {
+    const bookmarks = await this.hostManager.getBookmarks(hostId);
+    return bookmarks.map(bookmark =>
+      new HostTreeItem(
+        bookmark.name,
+        'bookmark',
+        bookmark,
+        vscode.TreeItemCollapsibleState.None,
+        true, // bookmarks don't need auth status
+        hostId
+      )
+    );
   }
 }

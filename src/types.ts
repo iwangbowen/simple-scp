@@ -1,4 +1,14 @@
 /**
+ * 路径书签接口
+ */
+export interface PathBookmark {
+  /** 书签名称 */
+  name: string;
+  /** 远程路径 */
+  path: string;
+}
+
+/**
  * 主机配置接口 (同步信息)
  */
 export interface HostConfig {
@@ -11,12 +21,14 @@ export interface HostConfig {
   group?: string;
   /** 默认远程路径 */
   defaultRemotePath?: string;
-  /** 主机颜色，用于视觉识别 */
+  /** 主机颜色,用于视觉识别 */
   color?: string;
   /** 是否星标 */
   starred?: boolean;
   /** 最近使用的远程路径列表 (最多保留10条) */
   recentPaths?: string[];
+  /** 路径书签列表 */
+  bookmarks?: PathBookmark[];
 }
 
 /**
