@@ -11,8 +11,12 @@ If you find this extension helpful, consider buying me a coffee!
 ## Features
 
 ### Core Functionality
-- **Quick File Upload/Download**: Upload or download files directly from Explorer, Editor, or remote file browser
-- **Host Management**: Organize and manage remote hosts in TreeView interface
+- **Quick File Upload/Download**: Upload or download files directly from Explorer, Editor, or Sidebar with intelligent host selection
+- **Dual Download Modes**:
+  - Download from Sidebar with custom save location
+  - Download from Explorer directly to selected folder
+- **Smart Host Selection**: Recently used hosts (upload or download) appear first for quick access
+- **Host Management**: Organize and manage remote hosts in TreeView interface with groups and color coding
 - **Cross-Device Sync**: Host configurations automatically sync across devices via VS Code Settings Sync
 - **SSH Config Import**: Import existing configurations from ~/.ssh/config with group selection
 - **Enhanced File Browser**:
@@ -21,6 +25,7 @@ If you find this extension helpful, consider buying me a coffee!
   - Quick upload/download buttons on each item
   - Dot files visibility toggle (configurable via settings)
   - Parent directory navigation with ".."
+  - File size display for easy reference
 
 ### Authentication
 - **Multiple Methods**: Support for Password, Private Key, and SSH Agent authentication
@@ -81,26 +86,43 @@ If you find this extension helpful, consider buying me a coffee!
 
 ### Upload Files
 
-**From Explorer:**
-1. Right-click any file or folder
-2. Select "Simple SCP: Upload to Remote Host"
-3. Choose the destination host
+**From Explorer or Editor:**
+
+1. Right-click any file or folder in Explorer or right-click in the editor
+2. Select "Upload to Remote Host"
+3. Choose the destination host (recently used hosts appear first)
 4. Browse and select the remote directory
 5. Use upload buttons on directory items for quick upload
 
-**From Editor:**
-1. Right-click in the editor
-2. Select "Simple SCP: Upload to Remote Host"
-3. Follow the same steps
+**Smart Host Selection:**
+- Hosts you've recently uploaded to or downloaded from appear at the top
+- Easy to reuse the same hosts for common workflows
+- Authentication status clearly indicated for each host
 
 ### Download Files
+
+**Method 1: Download from Sidebar (Custom Location)**
 
 1. Right-click a host in the TreeView
 2. Select "Download from Remote Host"
 3. Browse remote directories with smart path navigation
 4. Click download buttons on files/directories for quick download
 5. Toggle dot files visibility as needed
-6. Select destination for downloaded files
+6. Choose where to save the downloaded files
+
+**Method 2: Download to Current Folder (Quick Download)**
+
+1. Right-click any file or folder in Explorer
+2. Select "Download from Remote Host to Here"
+3. Choose the source host (recently used hosts appear first)
+4. Browse and select remote files/folders
+5. Files download directly to the selected local folder
+
+Both methods support:
+- Downloading individual files or entire directories
+- Smart path navigation with input box
+- Recently used hosts for quick access
+- Real-time progress tracking
 
 ### Edit Host Configuration
 
@@ -116,7 +138,7 @@ If you find this extension helpful, consider buying me a coffee!
 
 ## Requirements
 
-- VS Code 1.85.0 or higher
+- VS Code 1.108.0 or higher
 - SSH access to remote hosts
 - For passwordless setup: SSH key pair (~/.ssh/id_rsa or similar)
 
