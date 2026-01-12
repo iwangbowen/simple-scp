@@ -1,5 +1,21 @@
 # Change Log
 
+## [0.9.6] - 2026-01-12
+
+### Performance
+
+- **SSH Connection Pool**: Implemented connection reuse to significantly improve performance
+  - Maintains pool of up to 5 active connections
+  - Automatically reuses connections for repeated operations
+  - Idle connections close after 5 minutes
+  - View pool status via Command Palette: "Show Connection Pool Status"
+  - Reduces connection overhead for frequent file operations
+
+### Improved
+
+- Removed unnecessary success notifications for delete operations
+- All delete confirmations now use centered modal dialogs for better visibility
+
 ## [0.9.5] - 2026-01-12
 
 ### Enhanced

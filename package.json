@@ -2,7 +2,7 @@
   "name": "simple-scp",
   "displayName": "Simple SCP",
   "description": "Lightweight SCP file upload and download tool with cross-device host configuration sync",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "publisher": "WangBowen",
   "icon": "resources/icon.png",
   "license": "MIT",
@@ -167,6 +167,12 @@
         "icon": "$(output)"
       },
       {
+        "command": "simpleScp.showConnectionPool",
+        "title": "Show Connection Pool Status",
+        "category": "Simple SCP",
+        "icon": "$(dashboard)"
+      },
+      {
         "command": "simpleScp.moveHostToGroup",
         "title": "Move to Group",
         "category": "Simple SCP",
@@ -200,6 +206,9 @@
         },
         {
           "command": "simpleScp.showLogs"
+        },
+        {
+          "command": "simpleScp.showConnectionPool"
         },
         {
           "command": "simpleScp.uploadFile",

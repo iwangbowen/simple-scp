@@ -5,11 +5,38 @@ import { Client, ConnectConfig } from 'ssh2';
 // @ts-ignore
 import SftpClient from 'ssh2-sftp-client';
 import { HostConfig, HostAuthConfig } from './types';
+import { SshConnectionPool } from './sshConnectionPool';
 
 /**
  * SSH 连接管理器
  */
 export class SshConnectionManager {
+  private static connectionPool = SshConnectionPool.getInstance();
+
+  /**
+   * 使用连接池执行操作
+   */
+  private static async withConnection<T>(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    operation: (sftpClient: SftpClient) => Promise<T>
+  ): Promise<T> {
+    const connectConfig = this.buildConnectConfig(config, authConfig);
+    const { client, sftpClient } = await this.connectionPool.getConnection(
+      config,
+      authConfig,
+      connectConfig
+    );
+
+    try {
+      const result = await operation(sftpClient);
+      return result;
+    } finally {
+      // 释放连接回池中
+      this.connectionPool.releaseConnection(config);
+    }
+  }
+
   /**
    * 测试连接
    */
@@ -58,31 +85,21 @@ export class SshConnectionManager {
    * 列出远程目录（仅目录）
    */
   static async listRemoteDirectory(config: HostConfig, authConfig: HostAuthConfig, remotePath: string): Promise<string[]> {
-    const sftp = new SftpClient();
-    try {
-      const connectConfig = this.buildConnectConfig(config, authConfig);
-      await sftp.connect(connectConfig);
-
+    return this.withConnection(config, authConfig, async (sftp) => {
       const list = await sftp.list(remotePath);
       const directories = list
         .filter((item: any) => item.type === 'd' && item.name !== '.' && item.name !== '..')
         .map((item: any) => item.name);
 
       return directories;
-    } finally {
-      await sftp.end();
-    }
+    });
   }
 
   /**
    * 列出远程目录（包含文件和文件夹）
    */
   static async listRemoteFiles(config: HostConfig, authConfig: HostAuthConfig, remotePath: string): Promise<Array<{name: string, type: 'file' | 'directory', size: number}>> {
-    const sftp = new SftpClient();
-    try {
-      const connectConfig = this.buildConnectConfig(config, authConfig);
-      await sftp.connect(connectConfig);
-
+    return this.withConnection(config, authConfig, async (sftp) => {
       const list = await sftp.list(remotePath);
       const items = list
         .filter((item: any) => item.name !== '.' && item.name !== '..')
@@ -93,9 +110,7 @@ export class SshConnectionManager {
         }));
 
       return items;
-    } finally {
-      await sftp.end();
-    }
+    });
   }
 
   /**

@@ -8,6 +8,7 @@ import { HostTreeProvider, HostTreeItem } from './hostTreeProvider';
 import { SshConnectionManager } from './sshConnectionManager';
 import { HostConfig, HostAuthConfig, FullHostConfig, GroupConfig } from './types';
 import { logger } from './logger';
+import { SshConnectionPool } from './sshConnectionPool';
 
 export class CommandHandler {
   private downloadStatusBar: vscode.StatusBarItem;
@@ -80,7 +81,8 @@ export class CommandHandler {
         this.browseBookmark(item)
       ),
       vscode.commands.registerCommand('simpleScp.refresh', () => this.refresh()),
-      vscode.commands.registerCommand('simpleScp.showLogs', () => this.showLogs())
+      vscode.commands.registerCommand('simpleScp.showLogs', () => this.showLogs()),
+      vscode.commands.registerCommand('simpleScp.showConnectionPool', () => this.showConnectionPoolStatus())
     );
   }
 
@@ -2271,6 +2273,26 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
   private showLogs(): void {
     logger.show();
+  }
+
+  /**
+   * Show connection pool status
+   */
+  private showConnectionPoolStatus(): void {
+    const pool = SshConnectionPool.getInstance();
+    const status = pool.getPoolStatus();
+
+    const message = `SSH Connection Pool Status:
+
+Total Connections: ${status.totalConnections}
+Active (In Use): ${status.activeConnections}
+Idle (Available): ${status.idleConnections}
+
+Connection pool helps improve performance by reusing SSH connections.
+Idle connections will be automatically closed after 5 minutes of inactivity.`;
+
+    vscode.window.showInformationMessage(message, { modal: true });
+    logger.info(`Connection Pool Status - Total: ${status.totalConnections}, Active: ${status.activeConnections}, Idle: ${status.idleConnections}`);
   }
 
   /**
