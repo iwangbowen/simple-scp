@@ -12,6 +12,7 @@ import { SshConnectionPool } from './sshConnectionPool';
 import { formatFileSize, formatSpeed, formatRemainingTime } from './utils/formatUtils';
 import { BookmarkService } from './services/bookmarkService';
 import { RemoteBrowserService } from './services/remoteBrowserService';
+import { DEFAULTS, LIMITS, TIMING, PROMPTS, PLACEHOLDERS, MESSAGES, INSTRUCTIONS, TOOLTIPS } from './constants';
 
 export class CommandHandler {
   private downloadStatusBar: vscode.StatusBarItem;
@@ -109,8 +110,8 @@ export class CommandHandler {
   private async addHost(groupId?: string): Promise<void> {
     // Step 1/6: Host name
     const name = await vscode.window.showInputBox({
-      prompt: 'Step 1/6: Enter host name',
-      placeHolder: 'e.g., My Server',
+      prompt: PROMPTS.hostName,
+      placeHolder: PLACEHOLDERS.hostName,
       validateInput: (value) => {
         if (!value || !value.trim()) {
           return 'Host name is required';
@@ -122,8 +123,8 @@ export class CommandHandler {
 
     // Step 2/6: Host address
     const host = await vscode.window.showInputBox({
-      prompt: 'Step 2/6: Enter host address',
-      placeHolder: 'e.g., 192.168.1.100 or example.com',
+      prompt: PROMPTS.hostAddress,
+      placeHolder: PLACEHOLDERS.hostAddress,
       validateInput: (value) => {
         if (!value || !value.trim()) {
           return 'Host address is required';
@@ -135,26 +136,26 @@ export class CommandHandler {
 
     // Step 3/6: Port number
     const portStr = await vscode.window.showInputBox({
-      prompt: 'Step 3/6: Enter port number (optional, default: 22)',
-      value: '22',
+      prompt: PROMPTS.hostPort,
+      value: PLACEHOLDERS.port,
       validateInput: (value) => {
         if (!value || !value.trim()) {
           return undefined; // Empty is allowed, will use default
         }
         const port = parseInt(value);
-        if (isNaN(port) || port < 1 || port > 65535) {
-          return 'Port must be a number between 1 and 65535';
+        if (isNaN(port) || port < LIMITS.MIN_PORT || port > LIMITS.MAX_PORT) {
+          return `Port must be a number between ${LIMITS.MIN_PORT} and ${LIMITS.MAX_PORT}`;
         }
         return undefined;
       },
     });
     if (portStr === undefined) {return;}
-    const port = portStr.trim() ? parseInt(portStr) : 22;
+    const port = portStr.trim() ? parseInt(portStr) : DEFAULTS.PORT;
 
     // Step 4/6: Username
     const username = await vscode.window.showInputBox({
-      prompt: 'Step 4/6: Enter username',
-      value: 'root',
+      prompt: PROMPTS.hostUsername,
+      value: PLACEHOLDERS.username,
       validateInput: (value) => {
         if (!value || !value.trim()) {
           return 'Username is required';
@@ -182,16 +183,16 @@ export class CommandHandler {
     // Step 6/6: Configure authentication
     const configureNow = await vscode.window.showQuickPick(
       [
-        { label: 'Yes', value: true },
-        { label: 'No, configure later', value: false },
+        { label: MESSAGES.yes, value: true },
+        { label: MESSAGES.no, value: false },
       ],
-      { placeHolder: 'Step 6/6: Configure authentication now?' }
+      { placeHolder: PROMPTS.hostAuthNow }
     );
 
     if (configureNow === undefined) {
       // User cancelled, but host is already created
       this.treeProvider.refresh();
-      vscode.window.showWarningMessage(`Host "${name}" added without authentication. Configure it later.`);
+      vscode.window.showWarningMessage(MESSAGES.hostAddedNoAuth(name));
       return;
     }
 
@@ -201,10 +202,10 @@ export class CommandHandler {
 
       if (authConfigured) {
         this.treeProvider.refresh();
-        vscode.window.showInformationMessage(`Host "${name}" added successfully with authentication`);
+        vscode.window.showInformationMessage(MESSAGES.hostAdded(name));
       } else {
         this.treeProvider.refresh();
-        vscode.window.showWarningMessage(`Host "${name}" added without authentication`);
+        vscode.window.showWarningMessage(MESSAGES.hostAddedNoAuth(name));
       }
     } else {
       this.treeProvider.refresh();
@@ -528,7 +529,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
           ? `Delete "${itemsToDelete[0].label}"?`
           : `Delete ${itemsToDelete.length} item(s)?`,
         { modal: true },
-        'Delete'
+        MESSAGES.delete
       );
 
       if (!confirm) {
@@ -946,15 +947,13 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     // Check authentication
     const authConfig = await this.authManager.getAuth(config.id);
     if (!authConfig) {
-      const configure = 'Configure Authentication';
-      const cancel = 'Cancel';
       const choice = await vscode.window.showWarningMessage(
-        `No authentication configured for ${config.name}. Configure now?`,
-        configure,
-        cancel
+        MESSAGES.noAuthConfigured(config.name),
+        MESSAGES.configure,
+        MESSAGES.cancel
       );
 
-      if (choice === configure) {
+      if (choice === MESSAGES.configure) {
         const success = await this.configureAuthForHost(config.id);
         if (!success) {
           return;
@@ -1144,15 +1143,13 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
     if (!authConfig) {
       logger.warn(`No authentication configured for ${config.name}`);
-      const configure = 'Configure Authentication';
-      const cancel = 'Cancel';
       const choice = await vscode.window.showWarningMessage(
-        `No authentication configured for ${config.name}. Configure now?`,
-        configure,
-        cancel
+        MESSAGES.noAuthConfigured(config.name),
+        MESSAGES.configure,
+        MESSAGES.cancel
       );
 
-      if (choice === configure) {
+      if (choice === MESSAGES.configure) {
         const success = await this.configureAuthForHost(config.id);
         if (!success) {
           return;
@@ -1233,15 +1230,13 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     // Check authentication
     const authConfig = await this.authManager.getAuth(config.id);
     if (!authConfig) {
-      const configure = 'Configure Authentication';
-      const cancel = 'Cancel';
       const choice = await vscode.window.showWarningMessage(
-        `No authentication configured for ${config.name}. Configure now?`,
-        configure,
-        cancel
+        MESSAGES.noAuthConfigured(config.name),
+        MESSAGES.configure,
+        MESSAGES.cancel
       );
 
-      if (choice === configure) {
+      if (choice === MESSAGES.configure) {
         const success = await this.configureAuthForHost(config.id);
         if (!success) {
           return;
@@ -1483,15 +1478,13 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     // Check authentication
     const authConfig = await this.authManager.getAuth(config.id);
     if (!authConfig) {
-      const configure = 'Configure Authentication';
-      const cancel = 'Cancel';
       const choice = await vscode.window.showWarningMessage(
-        `No authentication configured for ${config.name}. Configure now?`,
-        configure,
-        cancel
+        MESSAGES.noAuthConfigured(config.name),
+        MESSAGES.configure,
+        MESSAGES.cancel
       );
 
-      if (choice === configure) {
+      if (choice === MESSAGES.configure) {
         const success = await this.configureAuthForHost(config.id);
         if (!success) {
           return;
@@ -1833,15 +1826,13 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     // Check authentication
     const authConfig = await this.authManager.getAuth(config.id);
     if (!authConfig) {
-      const configure = 'Configure Authentication';
-      const cancel = 'Cancel';
       const choice = await vscode.window.showWarningMessage(
-        `No authentication configured for ${config.name}. Configure now?`,
-        configure,
-        cancel
+        MESSAGES.noAuthConfigured(config.name),
+        MESSAGES.configure,
+        MESSAGES.cancel
       );
 
-      if (choice === configure) {
+      if (choice === MESSAGES.configure) {
         const success = await this.configureAuthForHost(config.id);
         if (!success) {
           return;
