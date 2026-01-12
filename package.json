@@ -46,6 +46,12 @@
         }
       ]
     },
+    "viewsWelcome": [
+      {
+        "view": "simpleScp.hosts",
+        "contents": "Welcome to Simple SCP! 🚀\n\nNo remote hosts configured yet. Get started by adding your first host to upload and download files via SCP/SFTP.\n\n[$(add) Add Host](command:simpleScp.addHost)\n\n[$(cloud-download) Import from SSH Config](command:simpleScp.importFromSshConfig)\n\nNeed help? Check out the [documentation](https://github.com/iwangbowen/simple-scp#readme)."
+      }
+    ],
     "submenus": [
       {
         "id": "simpleScp.addMenu",
