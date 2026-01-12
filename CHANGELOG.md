@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.9.8] - 2026-01-12
+
+### Added
+
+- **Virtual Workspaces Declaration**: Formally declared incompatibility with VS Code Virtual Workspaces
+  - Extension requires local file system access for SSH/SCP operations
+  - Prevents installation in virtual workspace environments (vscode.dev, github.dev)
+
 ## [0.9.7] - 2026-01-12
 
 ### Added
@@ -12,9 +20,6 @@
   - Show sync key and data statistics on startup
   - Log all data save operations with counts
   - Display host list details during initialization
-- **Virtual Workspaces Declaration**: Formally declared incompatibility with VS Code Virtual Workspaces
-  - Extension requires local file system access for SSH/SCP operations
-  - Prevents installation in virtual workspace environments (vscode.dev, github.dev)
 
 ## [0.9.6] - 2026-01-12
 
