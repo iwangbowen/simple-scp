@@ -500,11 +500,12 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
         }
       }
     } else {
-      // Non-modal confirmation for empty groups or hosts only
+      // Modal confirmation for empty groups or hosts only
       const confirm = await vscode.window.showWarningMessage(
         itemsToDelete.length === 1
           ? `Delete "${itemsToDelete[0].label}"?`
           : `Delete ${itemsToDelete.length} item(s)?`,
+        { modal: true },
         'Delete'
       );
 
