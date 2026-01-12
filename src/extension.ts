@@ -19,7 +19,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const authManager = new AuthManager(context);
 
   // Create TreeView provider
-  const treeProvider = new HostTreeProvider(hostManager, authManager);
+  const treeProvider = new HostTreeProvider(hostManager, authManager, context.extensionPath);
   const treeView = vscode.window.createTreeView('simpleScp.hosts', {
     treeDataProvider: treeProvider,
     showCollapseAll: true,

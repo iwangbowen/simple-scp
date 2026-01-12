@@ -18,7 +18,8 @@ export class HostTreeItem extends vscode.TreeItem {
     public readonly data: HostConfig | GroupConfig | PathBookmark,
     public readonly collapsibleState: vscode.TreeItemCollapsibleState,
     public readonly hasAuth: boolean = true, // Whether authentication is configured
-    public readonly hostId?: string // Host ID for bookmark items
+    public readonly hostId?: string, // Host ID for bookmark items
+    private readonly extensionPath?: string // Extension path for custom icons
   ) {
     super(label, collapsibleState);
 
@@ -28,11 +29,22 @@ export class HostTreeItem extends vscode.TreeItem {
 
       // Show different icon based on starred state and auth status
       if (host.starred) {
-        // Starred hosts: yellow star if configured, gray star if not configured
-        const starColor = hasAuth
-          ? new vscode.ThemeColor('charts.yellow')  // Yellow star for configured
-          : new vscode.ThemeColor('descriptionForeground');  // Gray star for not configured
-        this.iconPath = new vscode.ThemeIcon('star-full', starColor);
+        // Starred hosts: custom golden star if configured, gray star if not configured
+        if (extensionPath) {
+          const iconName = hasAuth ? 'star-golden.svg' : 'star-gray.svg';
+          const iconPath = vscode.Uri.file(
+            extensionPath + '/resources/' + iconName
+          );
+          this.iconPath = {
+            light: iconPath,
+            dark: iconPath
+          };
+        } else {
+          // Fallback to theme icon
+          this.iconPath = hasAuth
+            ? new vscode.ThemeIcon('star-full', new vscode.ThemeColor('charts.orange'))
+            : new vscode.ThemeIcon('star-full', new vscode.ThemeColor('descriptionForeground'));
+        }
       } else if (hasAuth) {
         // Non-starred hosts with auth: server icon with optional user color
         this.iconPath = new vscode.ThemeIcon(
@@ -87,7 +99,8 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem> {
 
   constructor(
     private readonly hostManager: HostManager,
-    private readonly authManager: AuthManager
+    private readonly authManager: AuthManager,
+    private readonly extensionPath: string
   ) {}
 
   refresh(): void {
@@ -104,7 +117,8 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem> {
       return this.getRootItems();
     } else if (element.type === 'group') {
       // 分组节点:显示该分组下的主机
-      return this.getHostsInGroup(element.data.id);
+      const group = element.data as GroupConfig;
+      return this.getHostsInGroup(group.id);
     } else if (element.type === 'host') {
       // 主机节点:显示该主机的书签
       const host = element.data as HostConfig;
@@ -154,7 +168,9 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem> {
           'host',
           host,
           collapsibleState,
-          hasAuth
+          hasAuth,
+          undefined,
+          this.extensionPath
         )
       );
     }
@@ -188,7 +204,9 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem> {
           'host',
           host,
           collapsibleState,
-          hasAuth
+          hasAuth,
+          undefined,
+          this.extensionPath
         )
       );
     }
