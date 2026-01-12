@@ -6,7 +6,7 @@ import { HostManager } from './hostManager';
 import { AuthManager } from './authManager';
 import { HostTreeProvider, HostTreeItem } from './hostTreeProvider';
 import { SshConnectionManager } from './sshConnectionManager';
-import { HostConfig, HostAuthConfig, FullHostConfig } from './types';
+import { HostConfig, HostAuthConfig, FullHostConfig, GroupConfig } from './types';
 import { logger } from './logger';
 
 export class CommandHandler {
@@ -453,16 +453,18 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
     // Check if any groups contain hosts
     const allHosts = await this.hostManager.getHosts();
-    const groupsWithHosts = groupsToDelete.filter(group =>
-      allHosts.some(h => h.group === group.data.id)
-    );
+    const groupsWithHosts = groupsToDelete.filter(group => {
+      const groupConfig = group.data as GroupConfig;
+      return allHosts.some(h => h.group === groupConfig.id);
+    });
 
     // Determine confirmation dialog type
     let deleteOnlyGroups = false;
     if (groupsWithHosts.length > 0) {
       // Modal confirmation for groups with hosts (important operation)
       const totalHostsInGroups = groupsWithHosts.reduce((count, group) => {
-        return count + allHosts.filter(h => h.group === group.data.id).length;
+        const groupConfig = group.data as GroupConfig;
+        return count + allHosts.filter(h => h.group === groupConfig.id).length;
       }, 0);
 
       const choice = await vscode.window.showWarningMessage(
@@ -484,12 +486,15 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       if (!deleteOnlyGroups) {
         // Add hosts from groups to the deletion list
         for (const groupItem of groupsWithHosts) {
-          const hostsInGroup = allHosts.filter(h => h.group === groupItem.data.id);
+          const groupConfig = groupItem.data as GroupConfig;
+          const hostsInGroup = allHosts.filter(h => h.group === groupConfig.id);
           for (const host of hostsInGroup) {
             // Avoid duplicates - don't add if already explicitly selected
-            if (!hostsToDelete.some(h => h.data.id === host.id)) {
-              await this.hostManager.deleteHost(host.id);
-              logger.info(`Deleted host in group: ${host.name}`);
+            const hostConfig = host as HostConfig;
+            const matchedHost = hostsToDelete.find(h => (h.data as HostConfig).id === hostConfig.id);
+            if (!matchedHost) {
+              await this.hostManager.deleteHost(hostConfig.id);
+              logger.info(`Deleted host in group: ${hostConfig.name}`);
             }
           }
         }
@@ -511,14 +516,16 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     try {
       // Delete all selected hosts
       for (const hostItem of hostsToDelete) {
-        await this.hostManager.deleteHost(hostItem.data.id);
+        const hostConfig = hostItem.data as HostConfig;
+        await this.hostManager.deleteHost(hostConfig.id);
         logger.info(`Deleted host: ${hostItem.label}`);
       }
 
       // Delete all selected groups
       // If deleteOnlyGroups is true, hosts in the group will be moved to "ungrouped"
       for (const groupItem of groupsToDelete) {
-        await this.hostManager.deleteGroup(groupItem.data.id);
+        const groupConfig = groupItem.data as GroupConfig;
+        await this.hostManager.deleteGroup(groupConfig.id);
         logger.info(`Deleted group: ${groupItem.label}`);
       }
 
@@ -883,8 +890,8 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       .filter(item => !item.isRecent)
       .sort((a, b) => {
         // Sort by auth status first, then by name
-        if (a.hasAuth && !b.hasAuth) return -1;
-        if (!a.hasAuth && b.hasAuth) return 1;
+        if (a.hasAuth && !b.hasAuth) { return -1; }
+        if (!a.hasAuth && b.hasAuth) { return 1; }
         return a.host.name.localeCompare(b.host.name);
       });
 
@@ -1047,7 +1054,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       quickPick.title = title;
 
       // Add prompt for persistent instructional text
-      quickPick.prompt = mode === 'selectPath'
+      (quickPick as any).prompt = mode === 'selectPath'
         ? 'Navigate using arrows or type a path ending with /'
         : mode === 'selectBookmark'
         ? 'Navigate to the directory you want to bookmark'
@@ -1657,15 +1664,27 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
           });
 
           try {
-            await SshConnectionManager.upload(
-              config,
-              authConfig,
-              localPath,
-              remoteTargetPath
-            );
+            const stat = fs.statSync(localPath);
+            if (stat.isDirectory()) {
+              await SshConnectionManager.uploadDirectory(
+                config,
+                authConfig,
+                localPath,
+                remoteTargetPath,
+                () => {}
+              );
+            } else {
+              await SshConnectionManager.uploadFile(
+                config,
+                authConfig,
+                localPath,
+                remoteTargetPath,
+                () => {}
+              );
+            }
             logger.info(`Uploaded ${localPath} to ${config.host}:${remoteTargetPath}`);
           } catch (error) {
-            logger.error(`Failed to upload ${localPath}:`, error);
+            logger.error(`Failed to upload ${localPath}:`, error as Error);
             vscode.window.showErrorMessage(`Failed to upload ${fileName}: ${error}`);
           }
         }
@@ -1856,15 +1875,27 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
           });
 
           try {
-            await SshConnectionManager.upload(
-              config,
-              authConfig,
-              localPath,
-              remoteTargetPath
-            );
+            const stat = fs.statSync(localPath);
+            if (stat.isDirectory()) {
+              await SshConnectionManager.uploadDirectory(
+                config,
+                authConfig,
+                localPath,
+                remoteTargetPath,
+                () => {}
+              );
+            } else {
+              await SshConnectionManager.uploadFile(
+                config,
+                authConfig,
+                localPath,
+                remoteTargetPath,
+                () => {}
+              );
+            }
             logger.info(`Uploaded ${localPath} to ${config.host}:${remoteTargetPath}`);
           } catch (error) {
-            logger.error(`Failed to upload ${localPath}:`, error);
+            logger.error(`Failed to upload ${localPath}:`, error as Error);
             vscode.window.showErrorMessage(`Failed to upload ${fileName}: ${error}`);
           }
         }
