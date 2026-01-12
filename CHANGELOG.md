@@ -1,5 +1,18 @@
 # Change Log
 
+## [0.9.7] - 2026-01-12
+
+### Added
+
+- **Welcome View**: Display welcome message with quick action buttons when no hosts configured
+  - Add Host button for quick host creation
+  - Import from SSH Config button for easy setup
+  - Documentation link for help
+- **Sync Logging**: Enhanced output logs for troubleshooting sync issues
+  - Show sync key and data statistics on startup
+  - Log all data save operations with counts
+  - Display host list details during initialization
+
 ## [0.9.6] - 2026-01-12
 
 ### Performance
