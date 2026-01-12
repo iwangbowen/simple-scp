@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.9.5] - 2026-01-12
+
+### Enhanced
+
+- **Custom Golden Star Icons**: Starred hosts with authentication now display vibrant golden stars (#FFD700)
+- **Sync with Host**: Replaced download-only with bidirectional sync, each file/folder shows upload and download buttons
+- **Streamlined Context Menu**: Test Connection moved from inline to context menu for cleaner interface
+
 ## [0.9.0] - 2026-01-11
 
 ### Added
