@@ -9,14 +9,15 @@ import { logger } from './logger';
  * Called when extension is activated
  */
 export async function activate(context: vscode.ExtensionContext) {
-  logger.info('Extension activated');
+  logger.info('=== Extension Activated ===');
 
-  // Initialize host manager (synced)
+  // Initialize host manager (synced via globalState)
   const hostManager = new HostManager(context);
   await hostManager.initialize();
 
-  // Initialize auth manager (local, not synced)
+  // Initialize auth manager (local SecretStorage, not synced)
   const authManager = new AuthManager(context);
+  logger.info('Auth manager initialized (local storage, not synced)');
 
   // Create TreeView provider
   const treeProvider = new HostTreeProvider(hostManager, authManager, context.extensionPath);
@@ -32,7 +33,7 @@ export async function activate(context: vscode.ExtensionContext) {
   const commandHandler = new CommandHandler(hostManager, authManager, treeProvider);
   commandHandler.registerCommands(context);
 
-  logger.info('Extension ready');
+  logger.info('=== Extension Ready ===');
 }
 
 /**

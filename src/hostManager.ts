@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { HostConfig, GroupConfig, StorageData, SshConfigEntry } from './types';
+import { logger } from './logger';
 
 /**
  * Host configuration manager
@@ -22,6 +23,19 @@ export class HostManager {
   async initialize(): Promise<void> {
     // Register the storage key for Settings Sync
     this.context.globalState.setKeysForSync([HostManager.STORAGE_KEY]);
+
+    // Log sync configuration
+    const data = await this.loadData();
+    logger.info('=== Simple SCP Sync Configuration ===');
+    logger.info(`Sync Key: ${HostManager.STORAGE_KEY}`);
+    logger.info(`Hosts: ${data.hosts.length}, Groups: ${data.groups.length}`);
+    if (data.hosts.length > 0) {
+      logger.info('Host List:');
+      data.hosts.forEach(h => {
+        const group = h.group ? ` [${h.group}]` : '';
+        logger.info(`  ${h.name} - ${h.username}@${h.host}:${h.port}${group}`);
+      });
+    }
   }
 
   /**
@@ -247,6 +261,7 @@ export class HostManager {
    */
   private async saveData(data: StorageData): Promise<void> {
     await this.context.globalState.update(HostManager.STORAGE_KEY, data);
+    logger.info(`Data saved and synced: ${data.hosts.length} hosts, ${data.groups.length} groups`);
   }
 
   /**
