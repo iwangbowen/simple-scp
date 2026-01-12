@@ -202,7 +202,6 @@ export class CommandHandler {
 
       if (authConfigured) {
         this.treeProvider.refresh();
-        vscode.window.showInformationMessage(MESSAGES.hostAdded(name));
       } else {
         this.treeProvider.refresh();
         vscode.window.showWarningMessage(MESSAGES.hostAddedNoAuth(name));
@@ -324,7 +323,6 @@ export class CommandHandler {
 
     if (success) {
       this.treeProvider.refresh();
-      vscode.window.showInformationMessage(`Authentication configured for ${config.name}`);
     }
   }
 
@@ -446,16 +444,12 @@ export class CommandHandler {
         });
       } else if (choice.value === 'auth') {
         // Configure authentication
-        const success = await this.configureAuthForHost(config.id);
-        if (success) {
-          vscode.window.showInformationMessage(MESSAGES.authUpdated);
-        }
+        await this.configureAuthForHost(config.id);
         this.treeProvider.refresh();
         return; // Early return after auth config
       }
 
       this.treeProvider.refresh();
-      vscode.window.showInformationMessage(MESSAGES.hostUpdated);
     } catch (error) {
       vscode.window.showErrorMessage(MESSAGES.updateFailed(error));
     }
@@ -581,7 +575,6 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     try {
       await this.hostManager.addGroup(name.trim());
       this.treeProvider.refresh();
-      vscode.window.showInformationMessage(`Group "${name}" created successfully`);
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to create group: ${error}`);
     }
@@ -639,13 +632,6 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       }
 
       this.treeProvider.refresh();
-
-      const targetGroup = groupChoice.value ? groupChoice.label : 'ungrouped';
-      if (hostsToMove.length === 1) {
-        vscode.window.showInformationMessage(`Moved "${hostsToMove[0].label}" to ${targetGroup}`);
-      } else {
-        vscode.window.showInformationMessage(`Moved ${hostsToMove.length} host(s) to ${targetGroup}`);
-      }
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to move host(s): ${error}`);
       logger.error('Failed to move host(s)', error as Error);
@@ -708,7 +694,6 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     try {
       await this.hostManager.updateGroup(groupConfig.id, newName.trim());
       this.treeProvider.refresh();
-      vscode.window.showInformationMessage(`Group renamed to "${newName}"`);
       logger.info(`Group ${groupConfig.name} renamed to ${newName}`);
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to rename group: ${error}`);

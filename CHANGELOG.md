@@ -8,6 +8,14 @@
   - Extension requires local file system access for SSH/SCP operations
   - Prevents installation in virtual workspace environments (vscode.dev, github.dev)
 
+### Improved
+
+- **Reduced Notification Noise**: Removed unnecessary success notifications for local operations
+  - No more notifications for: host added/updated, group created/renamed, host moved, authentication configured
+  - TreeView updates immediately to reflect changes
+  - Only network operations (upload/download/connection test) show success notifications
+  - Cleaner user experience with fewer interruptions
+
 ## [0.9.7] - 2026-01-12
 
 ### Added
