@@ -10,9 +10,11 @@ import { HostConfig, HostAuthConfig, FullHostConfig, GroupConfig } from './types
 import { logger } from './logger';
 import { SshConnectionPool } from './sshConnectionPool';
 import { formatFileSize, formatSpeed, formatRemainingTime } from './utils/formatUtils';
+import { BookmarkService } from './services/bookmarkService';
 
 export class CommandHandler {
   private downloadStatusBar: vscode.StatusBarItem;
+  private bookmarkService: BookmarkService;
 
   constructor(
     private hostManager: HostManager,
@@ -23,6 +25,14 @@ export class CommandHandler {
     this.downloadStatusBar = vscode.window.createStatusBarItem(
       vscode.StatusBarAlignment.Left,
       100
+    );
+
+    // Initialize bookmark service
+    this.bookmarkService = new BookmarkService(
+      hostManager,
+      authManager,
+      treeProvider,
+      this.browseRemoteFilesGeneric.bind(this)
     );
   }
 
@@ -73,13 +83,13 @@ export class CommandHandler {
         this.copySshCommand(item)
       ),
       vscode.commands.registerCommand('simpleScp.addBookmark', (item: HostTreeItem) =>
-        this.addBookmark(item)
+        this.bookmarkService.addBookmark(item)
       ),
       vscode.commands.registerCommand('simpleScp.deleteBookmark', (item: HostTreeItem) =>
-        this.deleteBookmark(item)
+        this.bookmarkService.deleteBookmark(item)
       ),
       vscode.commands.registerCommand('simpleScp.browseBookmark', (item: HostTreeItem) =>
-        this.browseBookmark(item)
+        this.bookmarkService.browseBookmark(item)
       ),
       vscode.commands.registerCommand('simpleScp.refresh', () => this.refresh()),
       vscode.commands.registerCommand('simpleScp.showLogs', () => this.showLogs()),
@@ -2355,140 +2365,5 @@ Idle connections will be automatically closed after 5 minutes of inactivity.`;
 
     vscode.window.showInformationMessage(message, { modal: true });
     logger.info(`Connection Pool Status - Total: ${status.totalConnections}, Active: ${status.activeConnections}, Idle: ${status.idleConnections}`);
-  }
-
-  /**
-   * Add a bookmark for a host
-   */
-  private async addBookmark(item: HostTreeItem): Promise<void> {
-    if (item.type !== 'host') {
-      vscode.window.showWarningMessage('Please select a host');
-      return;
-    }
-
-    const host = item.data as HostConfig;
-
-    // Check authentication
-    const authConfig = await this.authManager.getAuth(host.id);
-    if (!authConfig) {
-      vscode.window.showWarningMessage(`No authentication configured for ${host.name}`);
-      return;
-    }
-
-    // Browse for remote path
-    const result = await this.browseRemoteFilesGeneric(
-      host,
-      authConfig,
-      'selectBookmark',
-      'Select Directory to Bookmark'
-    );
-
-    if (!result || typeof result !== 'string') {
-      return;
-    }
-
-    const remotePath = result;
-
-    // Get folder name as default bookmark name
-    const folderName = path.basename(remotePath);
-
-    // Ask for bookmark name
-    const name = await vscode.window.showInputBox({
-      prompt: 'Enter bookmark name',
-      value: folderName, // Default to folder name
-      placeHolder: 'e.g., Project Files',
-      validateInput: (value) => {
-        if (!value || !value.trim()) {
-          return 'Bookmark name cannot be empty';
-        }
-        return null;
-      }
-    });
-
-    if (!name) {
-      return;
-    }
-
-    try {
-      await this.hostManager.addBookmark(host.id, name.trim(), remotePath);
-      vscode.window.showInformationMessage(`Bookmark '${name}' added successfully`);
-      this.treeProvider.refresh();
-    } catch (error) {
-      vscode.window.showErrorMessage(`Failed to add bookmark: ${error}`);
-    }
-  }
-
-  /**
-   * Delete a bookmark
-   */
-  private async deleteBookmark(item: HostTreeItem): Promise<void> {
-    if (item.type !== 'bookmark') {
-      vscode.window.showWarningMessage('Please select a bookmark');
-      return;
-    }
-
-    const bookmark = item.data as import('./types').PathBookmark;
-    const hostId = item.hostId;
-
-    if (!hostId) {
-      return;
-    }
-
-    const confirm = await vscode.window.showWarningMessage(
-      `Delete bookmark '${bookmark.name}'?`,
-      { modal: true },
-      'Delete'
-    );
-
-    if (confirm !== 'Delete') {
-      return;
-    }
-
-    await this.hostManager.removeBookmark(hostId, bookmark.name);
-    this.treeProvider.refresh();
-  }
-
-  /**
-   * Browse files from a bookmark
-   */
-  private async browseBookmark(item: HostTreeItem): Promise<void> {
-    if (item.type !== 'bookmark') {
-      vscode.window.showWarningMessage('Please select a bookmark');
-      return;
-    }
-
-    const bookmark = item.data as import('./types').PathBookmark;
-    const hostId = item.hostId;
-
-    if (!hostId) {
-      return;
-    }
-
-    // Get host config
-    const hosts = await this.hostManager.getHosts();
-    const host = hosts.find(h => h.id === hostId);
-
-    if (!host) {
-      vscode.window.showWarningMessage('Host not found');
-      return;
-    }
-
-    // Check authentication
-    const authConfig = await this.authManager.getAuth(host.id);
-    if (!authConfig) {
-      vscode.window.showWarningMessage(`No authentication configured for ${host.name}`);
-      return;
-    }
-
-    // Browse from bookmark path
-    // First, update the recent path to the bookmark path
-    await this.hostManager.recordRecentPath(host.id, bookmark.path);
-
-    await this.browseRemoteFilesGeneric(
-      host,
-      authConfig,
-      'browseFiles',
-      `Browse: ${bookmark.name}`
-    );
   }
 }
