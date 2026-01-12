@@ -1723,43 +1723,104 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     );
 
     try {
-      await vscode.window.withProgress(
-        {
-          location: vscode.ProgressLocation.Notification,
-          title: `Downloading from ${config.name}`,
-          cancellable: false
-        },
-        async () => {
-          if (isDirectory) {
-            await SshConnectionManager.downloadDirectory(
-              config,
-              authConfig,
-              remotePath,
-              localPath,
-              (currentFile, percentage) => {
-                logger.debug(`Downloading ${currentFile} (${percentage}%)`);
-              }
-            );
-          } else {
-            await SshConnectionManager.downloadFile(
-              config,
-              authConfig,
-              remotePath,
-              localPath,
-              () => {}
-            );
-          }
-        }
-      );
+      if (isDirectory) {
+        logger.info(`Downloading directory: ${remotePath}`);
 
+        // Show status bar for directory download
+        this.downloadStatusBar.text = `$(sync~spin) Downloading folder...`;
+        this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}`;
+        this.downloadStatusBar.show();
+
+        await SshConnectionManager.downloadDirectory(
+          config,
+          authConfig,
+          remotePath,
+          localPath,
+          (currentFile, percentage) => {
+            logger.debug(`Downloading ${currentFile} (${percentage}%)`);
+            this.downloadStatusBar.text = `$(sync~spin) Downloading folder: ${percentage}%`;
+            this.downloadStatusBar.tooltip = `Downloading: ${currentFile}\nProgress: ${percentage}%`;
+          }
+        );
+      } else {
+        logger.info(`Downloading file: ${remotePath}`);
+
+        // Track download speed
+        let lastTransferred = 0;
+        let lastTime = 0; // Initialize to 0 to force first update
+
+        // Show initial status bar
+        this.downloadStatusBar.text = `$(sync~spin) Downloading...`;
+        this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}`;
+        this.downloadStatusBar.show();
+
+        await SshConnectionManager.downloadFile(
+          config,
+          authConfig,
+          remotePath,
+          localPath,
+          (transferred, total) => {
+            const percentage = Math.round((transferred / total) * 100);
+            const currentTime = Date.now();
+            const elapsed = (currentTime - lastTime) / 1000; // seconds
+
+            // Calculate and update speed every 5 seconds to reduce flickering
+            if (elapsed > 5 || lastTime === 0) {
+              const bytesTransferred = transferred - lastTransferred;
+              const speed = bytesTransferred / elapsed;
+
+              // Always update text to show percentage
+              this.downloadStatusBar.text = `$(sync~spin) ${percentage}%`;
+
+              if (speed > 0 && Number.isFinite(speed)) {
+                const formattedSpeed = this.formatSpeed(speed);
+
+                // Calculate remaining time
+                const remaining = total - transferred;
+                const remainingTime = remaining / speed;
+                const formattedTime = this.formatRemainingTime(remainingTime);
+
+                // Update status bar
+                this.downloadStatusBar.text = `$(sync~spin) ${percentage}% - ${formattedSpeed}`;
+                this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nFile Size: ${this.formatFileSize(total)}\nProgress: ${percentage}% (${this.formatFileSize(transferred)} / ${this.formatFileSize(total)})\nSpeed: ${formattedSpeed}\nETA: ${formattedTime}`;
+              } else {
+                // No speed info available, just show basic tooltip
+                this.downloadStatusBar.tooltip = `Downloading: ${remoteFileName}\nFile Size: ${this.formatFileSize(total)}\nProgress: ${percentage}% (${this.formatFileSize(transferred)} / ${this.formatFileSize(total)})`;
+              }
+
+              lastTransferred = transferred;
+              lastTime = currentTime;
+            }
+          }
+        );
+      }
+
+      logger.info(`✓ Download successful: ${localPath}`);
+      vscode.window.showInformationMessage(`Successfully downloaded to ${localPath}`);
+
+      // Record this host as recently used
       await this.hostManager.recordRecentUsed(config.id);
+      // Record the remote directory path as recently used
       const remoteDir = isDirectory ? remotePath : path.dirname(remotePath);
       await this.hostManager.recordRecentPath(config.id, remoteDir);
 
-      vscode.window.showInformationMessage(`Successfully downloaded to ${localPath}`);
+      // Hide status bar after successful download
+      this.downloadStatusBar.hide();
     } catch (error) {
       logger.error(`✗ Download failed: ${remotePath}`, error as Error);
-      vscode.window.showErrorMessage(`Download failed: ${error}`);
+
+      // Hide status bar on error
+      this.downloadStatusBar.hide();
+
+      const openLogs = 'View Logs';
+      const choice = await vscode.window.showErrorMessage(
+        `Download failed: ${error}`,
+        openLogs
+      );
+
+      if (choice === openLogs) {
+        logger.show();
+      }
     }
   }
 
