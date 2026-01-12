@@ -52,8 +52,8 @@ export class CommandHandler {
       vscode.commands.registerCommand('simpleScp.uploadFile', (uri: vscode.Uri) =>
         this.uploadFile(uri)
       ),
-      vscode.commands.registerCommand('simpleScp.downloadFile', (item: HostTreeItem) =>
-        this.downloadFile(item)
+      vscode.commands.registerCommand('simpleScp.syncWithHost', (item: HostTreeItem) =>
+        this.syncWithHost(item)
       ),
       vscode.commands.registerCommand('simpleScp.downloadToLocal', (uri: vscode.Uri) =>
         this.downloadToLocal(uri)
@@ -1028,7 +1028,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
   private async browseRemoteFilesGeneric(
     config: HostConfig,
     authConfig: HostAuthConfig,
-    mode: 'selectPath' | 'browseFiles' | 'selectBookmark',
+    mode: 'selectPath' | 'browseFiles' | 'selectBookmark' | 'sync',
     title: string
   ): Promise<string | { path: string; isDirectory: boolean } | undefined> {
     // Get recent paths for this host
@@ -1051,6 +1051,8 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
         ? 'Navigate using arrows or type a path ending with /'
         : mode === 'selectBookmark'
         ? 'Navigate to the directory you want to bookmark'
+        : mode === 'sync'
+        ? 'Click upload/download buttons or select file/folder'
         : 'Select a file or folder to download';
 
       // Add buttons based on mode
@@ -1165,18 +1167,30 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
                 const isDirectory = item.type === 'directory';
                 const fileSize = item.type === 'file' ? this.formatFileSize(item.size) : '';
 
+                // Determine which buttons to show based on mode
+                const itemButtons = mode === 'sync' ? [
+                  {
+                    iconPath: new vscode.ThemeIcon('cloud-upload'),
+                    tooltip: 'Upload to here'
+                  },
+                  {
+                    iconPath: new vscode.ThemeIcon('cloud-download'),
+                    tooltip: 'Download'
+                  }
+                ] : [
+                  {
+                    iconPath: new vscode.ThemeIcon('cloud-download'),
+                    tooltip: 'Download'
+                  }
+                ];
+
                 return {
                   label: item.name,
                   description: fileSize,  // 显示文件大小
                   resourceUri: vscode.Uri.parse(`scp-remote://${config.host}${fullPath}`),  // 新版本使用,旧版本自动忽略
                   iconPath: isDirectory ? vscode.ThemeIcon.Folder : vscode.ThemeIcon.File,  // 新版本触发主题图标,旧版本显示标准图标
                   alwaysShow: true,
-                  buttons: [
-                    {
-                      iconPath: new vscode.ThemeIcon('cloud-download'),
-                      tooltip: 'Download'
-                    }
-                  ],
+                  buttons: itemButtons,
                   item: item
                 } as any;
               }),
@@ -1271,7 +1285,30 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
           return;
         }
 
-        if (mode === 'browseFiles') {
+        const buttonIndex = event.button === selected.buttons?.[0] ? 0 : 1;
+
+        if (mode === 'sync') {
+          // Sync mode: two buttons - upload (index 0) and download (index 1)
+          const item = selected.item;
+          const itemPath = `${currentPath}/${item.name}`.replace(/\/\//g, '/');
+
+          if (buttonIndex === 0) {
+            // Upload button clicked
+            logger.info(`Upload button clicked for: ${itemPath}`);
+            quickPick.hide();
+            // Call upload handler with the remote path as target
+            await this.handleUploadToRemotePath(config, authConfig, itemPath, item.type === 'directory');
+            quickPick.show();
+            await loadDirectory(currentPath, false);
+          } else {
+            // Download button clicked
+            logger.info(`Download button clicked for: ${itemPath}`);
+            quickPick.hide();
+            await this.handleDownloadFromRemotePath(config, authConfig, itemPath, item.type === 'directory');
+            quickPick.show();
+            await loadDirectory(currentPath, false);
+          }
+        } else if (mode === 'browseFiles') {
           // Download button
           const item = selected.item;
           const itemPath = `${currentPath}/${item.name}`.replace(/\/\//g, '/');
@@ -1536,7 +1573,10 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     logger.info(`Copied SSH command: ${sshCommand}`);
   }
 
-  private async downloadFile(item: HostTreeItem): Promise<void> {
+  /**
+   * Sync with host - upload or download files
+   */
+  private async syncWithHost(item: HostTreeItem): Promise<void> {
     if (item.type !== 'host') {return;}
 
     const config = item.data as HostConfig;
@@ -1557,12 +1597,290 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
         if (!success) {
           return;
         }
-        // Recursively call downloadFile after configuring auth
-        return this.downloadFile(item);
+        return this.syncWithHost(item);
       }
       return;
     }
 
+    // Open sync browser with upload and download buttons on each item
+    await this.browseRemoteFilesGeneric(
+      config,
+      authConfig,
+      'sync',
+      `Sync with ${config.name}`
+    );
+  }
+
+  /**
+   * Handle upload files to a specific remote path
+   */
+  private async handleUploadToRemotePath(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    remotePath: string,
+    isDirectory: boolean
+  ): Promise<void> {
+    // If the remote path is a file, use its parent directory
+    const remoteDir = isDirectory ? remotePath : path.dirname(remotePath);
+
+    // Open file/folder picker
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri;
+    const uris = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: true,
+      canSelectMany: true,
+      openLabel: 'Select Files or Folders to Upload',
+      defaultUri: workspaceFolder
+    });
+
+    if (!uris || uris.length === 0) {
+      return;
+    }
+
+    // Upload each selected file/folder
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: `Uploading to ${config.name}`,
+        cancellable: false
+      },
+      async (progress) => {
+        for (let i = 0; i < uris.length; i++) {
+          const uri = uris[i];
+          const localPath = uri.fsPath;
+          const fileName = path.basename(localPath);
+          const remoteTargetPath = remoteDir + '/' + fileName;
+
+          progress.report({
+            message: `${fileName} (${i + 1}/${uris.length})`,
+            increment: (100 / uris.length)
+          });
+
+          try {
+            await SshConnectionManager.upload(
+              config,
+              authConfig,
+              localPath,
+              remoteTargetPath
+            );
+            logger.info(`Uploaded ${localPath} to ${config.host}:${remoteTargetPath}`);
+          } catch (error) {
+            logger.error(`Failed to upload ${localPath}:`, error);
+            vscode.window.showErrorMessage(`Failed to upload ${fileName}: ${error}`);
+          }
+        }
+      }
+    );
+
+    await this.hostManager.recordRecentUsed(config.id);
+    await this.hostManager.recordRecentPath(config.id, remoteDir);
+    vscode.window.showInformationMessage(`Successfully uploaded ${uris.length} item(s) to ${remoteDir}`);
+  }
+
+  /**
+   * Handle download file/folder from a specific remote path
+   */
+  private async handleDownloadFromRemotePath(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    remotePath: string,
+    isDirectory: boolean
+  ): Promise<void> {
+    // Select local save path
+    const remoteFileName = path.basename(remotePath);
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const defaultPath = workspaceFolder
+      ? path.join(workspaceFolder, remoteFileName)
+      : remoteFileName;
+    const defaultUri = vscode.Uri.file(defaultPath);
+
+    const saveUri = await vscode.window.showSaveDialog({
+      defaultUri,
+      title: 'Select download location',
+      saveLabel: 'Download Here'
+    });
+
+    if (!saveUri) {return;}
+
+    const localPath = saveUri.fsPath;
+
+    logger.info(
+      `Starting download: ${config.username}@${config.host}:${remotePath} → ${localPath}`
+    );
+
+    try {
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: `Downloading from ${config.name}`,
+          cancellable: false
+        },
+        async () => {
+          if (isDirectory) {
+            await SshConnectionManager.downloadDirectory(
+              config,
+              authConfig,
+              remotePath,
+              localPath,
+              (currentFile, percentage) => {
+                logger.debug(`Downloading ${currentFile} (${percentage}%)`);
+              }
+            );
+          } else {
+            await SshConnectionManager.downloadFile(
+              config,
+              authConfig,
+              remotePath,
+              localPath,
+              () => {}
+            );
+          }
+        }
+      );
+
+      await this.hostManager.recordRecentUsed(config.id);
+      const remoteDir = isDirectory ? remotePath : path.dirname(remotePath);
+      await this.hostManager.recordRecentPath(config.id, remoteDir);
+
+      vscode.window.showInformationMessage(`Successfully downloaded to ${localPath}`);
+    } catch (error) {
+      logger.error(`✗ Download failed: ${remotePath}`, error as Error);
+      vscode.window.showErrorMessage(`Download failed: ${error}`);
+    }
+  }
+
+  /**
+   * Sync with host - upload or download files (deprecated version)
+   * @deprecated Use syncWithHost with sync mode instead
+   */
+  private async syncWithHostOld(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'host') {return;}
+
+    const config = item.data as HostConfig;
+
+    // Check authentication
+    const authConfig = await this.authManager.getAuth(config.id);
+    if (!authConfig) {
+      const configure = 'Configure Authentication';
+      const cancel = 'Cancel';
+      const choice = await vscode.window.showWarningMessage(
+        `No authentication configured for ${config.name}. Configure now?`,
+        configure,
+        cancel
+      );
+
+      if (choice === configure) {
+        const success = await this.configureAuthForHost(config.id);
+        if (!success) {
+          return;
+        }
+        // Recursively call syncWithHost after configuring auth
+        return this.syncWithHost(item);
+      }
+      return;
+    }
+
+    // Ask user whether to upload or download
+    const action = await vscode.window.showQuickPick(
+      [
+        {
+          label: '$(cloud-upload) Upload to Remote Host',
+          description: 'Upload files or folders from local to remote',
+          action: 'upload'
+        },
+        {
+          label: '$(cloud-download) Download from Remote Host',
+          description: 'Download files or folders from remote to local',
+          action: 'download'
+        }
+      ],
+      {
+        placeHolder: 'Choose sync direction'
+      }
+    );
+
+    if (!action) {
+      return;
+    }
+
+    if (action.action === 'upload') {
+      await this.handleUploadToHost(config, authConfig);
+    } else {
+      await this.handleDownloadFromHost(config, authConfig);
+    }
+  }
+
+  /**
+   * Handle upload files/folders to remote host
+   */
+  private async handleUploadToHost(config: HostConfig, authConfig: HostAuthConfig): Promise<void> {
+    // Open file/folder picker
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0]?.uri;
+    const uris = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectFolders: true,
+      canSelectMany: true,
+      openLabel: 'Select Files or Folders to Upload',
+      defaultUri: workspaceFolder
+    });
+
+    if (!uris || uris.length === 0) {
+      return;
+    }
+
+    // Select remote directory
+    const remotePath = await this.selectRemoteFileOrDirectory(config, authConfig);
+    if (!remotePath) {
+      return;
+    }
+
+    const remoteDir = remotePath.isDirectory ? remotePath.path : path.dirname(remotePath.path);
+
+    // Upload each selected file/folder
+    const progress = vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Notification,
+        title: `Uploading to ${config.name}`,
+        cancellable: false
+      },
+      async (progress) => {
+        for (let i = 0; i < uris.length; i++) {
+          const uri = uris[i];
+          const localPath = uri.fsPath;
+          const fileName = path.basename(localPath);
+          const remoteTargetPath = remoteDir + '/' + fileName;
+
+          progress.report({
+            message: `${fileName} (${i + 1}/${uris.length})`,
+            increment: (100 / uris.length)
+          });
+
+          try {
+            await SshConnectionManager.upload(
+              config,
+              authConfig,
+              localPath,
+              remoteTargetPath
+            );
+            logger.info(`Uploaded ${localPath} to ${config.host}:${remoteTargetPath}`);
+          } catch (error) {
+            logger.error(`Failed to upload ${localPath}:`, error);
+            vscode.window.showErrorMessage(`Failed to upload ${fileName}: ${error}`);
+          }
+        }
+      }
+    );
+
+    await progress;
+    await this.hostManager.recordRecentUsed(config.id);
+    await this.hostManager.recordRecentPath(config.id, remoteDir);
+    vscode.window.showInformationMessage(`Successfully uploaded ${uris.length} item(s) to ${config.name}`);
+  }
+
+  /**
+   * Handle download files/folders from remote host
+   */
+  private async handleDownloadFromHost(config: HostConfig, authConfig: HostAuthConfig): Promise<void> {
     // Select remote file or directory to download
     const remotePath = await this.selectRemoteFileOrDirectory(config, authConfig);
     if (!remotePath) {return;}

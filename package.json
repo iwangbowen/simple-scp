@@ -102,10 +102,10 @@
         "category": "Simple SCP"
       },
       {
-        "command": "simpleScp.downloadFile",
-        "title": "Download from Remote Host",
+        "command": "simpleScp.syncWithHost",
+        "title": "Sync with Host",
         "category": "Simple SCP",
-        "icon": "$(cloud-download)"
+        "icon": "$(sync)"
       },
       {
         "command": "simpleScp.downloadToLocal",
@@ -206,7 +206,7 @@
           "when": "false"
         },
         {
-          "command": "simpleScp.downloadFile",
+          "command": "simpleScp.syncWithHost",
           "when": "false"
         },
         {
@@ -299,9 +299,9 @@
           "group": "inline@2"
         },
         {
-          "command": "simpleScp.downloadFile",
+          "command": "simpleScp.syncWithHost",
           "when": "view == simpleScp.hosts && viewItem == host",
-          "group": "1_download@1"
+          "group": "1_sync@1"
         },
         {
           "command": "simpleScp.copySshCommand",
