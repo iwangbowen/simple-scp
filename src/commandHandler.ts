@@ -1102,8 +1102,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       const confirm = await vscode.window.showInformationMessage(
         message,
         { modal: true },
-        'Import',
-        'Cancel'
+        'Import'
       );
 
       if (confirm !== 'Import') {
