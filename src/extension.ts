@@ -7,6 +7,7 @@ import { TransferQueueService } from './services/transferQueueService';
 import { TransferHistoryService } from './services/transferHistoryService';
 import { TransferQueueTreeProvider } from './ui/transferQueueTreeProvider';
 import { TransferQueueCommands } from './integrations/transferQueueCommands';
+import { formatSpeed } from './utils/formatUtils';
 import { logger } from './logger';
 
 /**
@@ -145,8 +146,44 @@ export async function activate(context: vscode.ExtensionContext) {
     })
   );
 
-  // Listen to task updates for notifications
+  // Listen to task updates for notifications and status bar
+  const transferStatusBar = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Left,
+    100
+  );
+  context.subscriptions.push(transferStatusBar);
+
+  // Update status bar with queue info
+  const updateStatusBar = () => {
+    const runningTasks = transferQueueService.getRunningTasks();
+    const pendingTasks = transferQueueService.getPendingTasks();
+
+    if (runningTasks.length > 0) {
+      const task = runningTasks[0];
+      const percentage = task.progress.toFixed(0);
+      const speed = task.speed > 0 ? ` - ${formatSpeed(task.speed)}` : '';
+
+      transferStatusBar.text = `$(sync~spin) ${task.fileName}: ${percentage}%${speed}`;
+      transferStatusBar.tooltip = `Transferring: ${task.fileName}\n${runningTasks.length} running, ${pendingTasks.length} pending`;
+      transferStatusBar.show();
+    } else if (pendingTasks.length > 0) {
+      transferStatusBar.text = `$(clock) ${pendingTasks.length} pending transfer(s)`;
+      transferStatusBar.tooltip = 'Click to view transfer queue';
+      transferStatusBar.show();
+    } else {
+      transferStatusBar.hide();
+    }
+  };
+
+  transferQueueService.onQueueChanged(() => {
+    // Update status bar when queue changes
+    updateStatusBar();
+  });
+
   transferQueueService.onTaskUpdated(task => {
+    // Update status bar
+    updateStatusBar();
+
     const config = vscode.workspace.getConfiguration('simpleScp.transferQueue');
     const showNotifications = config.get('showNotifications', true);
 

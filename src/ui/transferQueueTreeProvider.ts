@@ -117,6 +117,9 @@ export class TransferQueueTreeProvider implements vscode.TreeDataProvider<Transf
   private showHistory: boolean = false;
   private filterStatus?: TaskStatus;
 
+  private refreshTimer?: NodeJS.Timeout;
+  private readonly refreshThrottleMs = 500; // Throttle refreshes to every 500ms
+
   constructor() {
     this.queueService = TransferQueueService.getInstance();
 
@@ -127,14 +130,28 @@ export class TransferQueueTreeProvider implements vscode.TreeDataProvider<Transf
       // Will be initialized later
     }
 
-    // Listen to queue changes
+    // Listen to queue changes - throttled refresh
     this.queueService.onQueueChanged(() => {
-      this.refresh();
+      this.scheduleRefresh();
     });
 
     this.queueService.onTaskUpdated(() => {
-      this.refresh();
+      this.scheduleRefresh();
     });
+  }
+
+  /**
+   * Schedule a throttled refresh
+   */
+  private scheduleRefresh(): void {
+    if (this.refreshTimer) {
+      return; // Already scheduled
+    }
+
+    this.refreshTimer = setTimeout(() => {
+      this.refreshTimer = undefined;
+      this.refresh();
+    }, this.refreshThrottleMs);
   }
 
   /**
