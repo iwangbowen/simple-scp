@@ -102,6 +102,8 @@ export class TransferQueueService extends EventEmitter {
    * Process queue - start pending tasks up to concurrency limit
    */
   private async processQueue(): Promise<void> {
+    logger.debug(`processQueue called, isPaused: ${this.isPaused}, runningTasks: ${this.runningTasks.size}, maxConcurrent: ${this.maxConcurrent}`);
+
     if (this.isPaused) {
       logger.debug('Queue is paused, skipping processing');
       return;
@@ -109,15 +111,20 @@ export class TransferQueueService extends EventEmitter {
 
     // Find pending tasks
     const pendingTasks = this.queue.filter(t => t.status === 'pending');
+    logger.debug(`Found ${pendingTasks.length} pending tasks`);
 
     // Start tasks up to concurrency limit
     for (const task of pendingTasks) {
       if (this.runningTasks.size >= this.maxConcurrent) {
+        logger.debug('Concurrency limit reached');
         break;
       }
 
       if (!this.runningTasks.has(task.id)) {
+        logger.info(`Starting task ${task.id}: ${task.fileName}`);
         this.executeTask(task);
+      } else {
+        logger.debug(`Task ${task.id} already running`);
       }
     }
   }
@@ -311,8 +318,11 @@ export class TransferQueueService extends EventEmitter {
     const task = this.getTask(taskId);
     if (task) {
       task.pause();
+      // Force remove from running tasks to ensure it can be resumed
+      this.runningTasks.delete(taskId);
       this._onTaskUpdated.fire(task);
       this._onQueueChanged.fire();
+      logger.info(`Task force paused and removed from running set: ${taskId}`);
     }
   }
 
