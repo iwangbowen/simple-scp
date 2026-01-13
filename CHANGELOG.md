@@ -1,5 +1,37 @@
 # Change Log
 
+## [1.0.5] - 2026-01-13
+
+### Added
+
+- **Host Import/Export**: Complete import and export functionality for host configurations
+  - **Export All Hosts**: Export all host configurations to JSON file
+  - **Export Group**: Export specific group with all its hosts
+  - **Export Host**: Export individual host configuration
+  - **Import Hosts**: Import host configurations from JSON file with conflict detection
+  - Export includes: host settings, groups, bookmarks, recent paths (excludes authentication credentials for security)
+  - Import behavior: automatically merges groups, skips duplicate hosts (same `username@host:port`), shows preview before import
+  - "View File" button after export to quickly open and review exported JSON file in VS Code
+
+### Changed
+
+- **Bilingual README**: Added complete Chinese translation in README.md
+  - Maintained English version at top with "English" section
+  - Added Chinese version below with "中文说明" section
+  - Language navigation links at the top of both sections
+  - Consistent heading hierarchy between English and Chinese versions
+
+### Improved
+
+- **UI Polish**: Removed redundant "Download started" notifications
+  - Download progress now only shown via Transfer Queue and status bar
+  - Reduces notification clutter for better user experience
+
+### Fixed
+
+- **Import Dialog**: Fixed duplicate "Cancel" button in import confirmation dialog
+  - Modal dialogs now display correctly with single Cancel button
+
 ## [1.0.0] - 2026-01-13
 
 ### 🎉 Major Release: Transfer Queue System
