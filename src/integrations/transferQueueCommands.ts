@@ -90,7 +90,7 @@ export class TransferQueueCommands {
     );
 
     if (confirm === 'Yes') {
-      this.queueService.cancelTask(task.id);
+      await this.queueService.cancelTask(task.id);
       vscode.window.showInformationMessage(`Cancelled: ${task.fileName}`);
       logger.info(`Task cancelled: ${task.id}`);
     }

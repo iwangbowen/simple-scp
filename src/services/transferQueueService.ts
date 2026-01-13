@@ -341,10 +341,46 @@ export class TransferQueueService extends EventEmitter {
   /**
    * Cancel a specific task
    */
-  cancelTask(taskId: string): void {
+  async cancelTask(taskId: string): Promise<void> {
     const task = this.getTask(taskId);
     if (task) {
       task.cancel();
+
+      // Clean up incomplete files
+      if (task.type === 'download' && task.status === 'cancelled') {
+        // Delete incomplete local file
+        try {
+          if (fs.existsSync(task.localPath)) {
+            if (task.isDirectory) {
+              fs.rmSync(task.localPath, { recursive: true, force: true });
+              logger.info(`Deleted incomplete directory: ${task.localPath}`);
+            } else {
+              fs.unlinkSync(task.localPath);
+              logger.info(`Deleted incomplete file: ${task.localPath}`);
+            }
+          }
+        } catch (error: any) {
+          logger.error(`Failed to delete incomplete local file: ${error.message}`);
+        }
+      } else if (task.type === 'upload' && task.status === 'cancelled' && this.hostManager && this.authManager) {
+        // For upload, delete the incomplete remote file
+        try {
+          const allHosts = await this.hostManager.getHosts();
+          const host = allHosts.find((h: HostConfig) => h.id === task.hostId);
+          const authConfig = await this.authManager.getAuth(task.hostId);
+
+          if (host && authConfig) {
+            await SshConnectionManager.deleteRemoteFile(host, authConfig, task.remotePath);
+            logger.info(`Deleted incomplete remote file: ${task.remotePath}`);
+          }
+        } catch (error: any) {
+          logger.error(`Failed to delete incomplete remote file: ${error.message}`);
+        }
+      }
+
+      // Force remove from running tasks
+      this.runningTasks.delete(taskId);
+
       this._onTaskUpdated.fire(task);
       this._onQueueChanged.fire();
     }

@@ -276,6 +276,73 @@ export class SshConnectionManager {
   }
 
   /**
+   * Delete a remote file or directory
+   */
+  static async deleteRemoteFile(
+    config: HostConfig,
+    authConfig: HostAuthConfig,
+    remotePath: string
+  ): Promise<void> {
+    return this.withConnection(config, authConfig, async (sftp) => {
+      // Check if path exists and is directory
+      try {
+        const stats = await sftp.stat(remotePath);
+
+        if (stats.isDirectory()) {
+          // Delete directory recursively
+          await this.deleteRemoteDirectory(sftp, remotePath);
+        } else {
+          // Delete single file
+          await sftp.unlink(remotePath);
+          logger.info(`Deleted remote file: ${remotePath}`);
+        }
+      } catch (error: any) {
+        // If file doesn't exist, that's ok
+        if (error.code !== 2) { // ENOENT
+          throw error;
+        }
+      }
+    });
+  }
+
+  /**
+   * Delete a remote directory recursively
+   */
+  private static async deleteRemoteDirectory(sftp: any, remotePath: string): Promise<void> {
+    const files = await this.getAllRemoteFiles(sftp, remotePath);
+
+    // Delete all files first
+    for (const file of files) {
+      await sftp.unlink(file);
+    }
+
+    // Get all directories
+    const dirs: string[] = [];
+    const items = await sftp.readdir(remotePath);
+
+    for (const item of items) {
+      const fullPath = `${remotePath}/${item.name}`.replace(/\/\//g, '/');
+      const stats = await sftp.stat(fullPath);
+
+      if (stats.isDirectory()) {
+        dirs.push(fullPath);
+      }
+    }
+
+    // Sort directories by depth (deepest first)
+    dirs.sort((a, b) => b.split('/').length - a.split('/').length);
+
+    // Delete directories from deepest to shallowest
+    for (const dir of dirs) {
+      await sftp.rmdir(dir);
+    }
+
+    // Finally delete the root directory
+    await sftp.rmdir(remotePath);
+    logger.info(`Deleted remote directory: ${remotePath}`);
+  }
+
+  /**
    * 配置免密登录（类似 ssh-copy-id）
    */
   static async setupPasswordlessLogin(
