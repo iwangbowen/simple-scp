@@ -1028,7 +1028,18 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     }
 
     fs.writeFileSync(uri.fsPath, jsonData, 'utf-8');
-    vscode.window.showInformationMessage(`Successfully exported to ${path.basename(uri.fsPath)}`);
+
+    const viewFile = 'View File';
+    const choice = await vscode.window.showInformationMessage(
+      `Successfully exported to ${path.basename(uri.fsPath)}`,
+      viewFile,
+      'OK'
+    );
+
+    if (choice === viewFile) {
+      const document = await vscode.workspace.openTextDocument(uri);
+      await vscode.window.showTextDocument(document);
+    }
   }
 
   /**
