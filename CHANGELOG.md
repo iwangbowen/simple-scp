@@ -60,7 +60,7 @@
 ### Enhanced
 
 - **Custom Golden Star Icons**: Starred hosts with authentication now display vibrant golden stars (#FFD700)
-- **Sync with Host**: Replaced download-only with bidirectional sync, each file/folder shows upload and download buttons
+- **Browse Files**: Bidirectional file browsing with upload and download buttons on each file/folder
 - **Streamlined Context Menu**: Test Connection moved from inline to context menu for cleaner interface
 
 ## [0.9.0] - 2026-01-11

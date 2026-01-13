@@ -74,8 +74,8 @@ export class CommandHandler {
       vscode.commands.registerCommand('simpleScp.uploadFile', (uri: vscode.Uri) =>
         this.uploadFile(uri)
       ),
-      vscode.commands.registerCommand('simpleScp.syncWithHost', (item: HostTreeItem) =>
-        this.syncWithHost(item)
+      vscode.commands.registerCommand('simpleScp.browseFiles', (item: HostTreeItem) =>
+        this.browseFiles(item)
       ),
       vscode.commands.registerCommand('simpleScp.downloadToLocal', (uri: vscode.Uri) =>
         this.downloadToLocal(uri)
@@ -1210,9 +1210,9 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
   }
 
   /**
-   * Sync with host - upload or download files
+   * Browse files - allows both uploading and downloading files
    */
-  private async syncWithHost(item: HostTreeItem): Promise<void> {
+  private async browseFiles(item: HostTreeItem): Promise<void> {
     if (item.type !== 'host') {return;}
 
     const config = item.data as HostConfig;
@@ -1232,17 +1232,17 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
         if (!success) {
           return;
         }
-        return this.syncWithHost(item);
+        return this.browseFiles(item);
       }
       return;
     }
 
-    // Open sync browser with upload and download buttons on each item
+    // Open file browser with upload and download buttons on each item
     await this.remoteBrowserService.browseRemoteFilesGeneric(
       config,
       authConfig,
       'sync',
-      `Sync with ${config.name}`
+      `Browse Files: ${config.name}`
     );
   }
 
@@ -1459,7 +1459,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
   /**
    * Sync with host - upload or download files (deprecated version)
-   * @deprecated Use syncWithHost with sync mode instead
+   * @deprecated Use browseFiles with sync mode instead
    */
   private async syncWithHostOld(item: HostTreeItem): Promise<void> {
     if (item.type !== 'host') {return;}
@@ -1480,8 +1480,8 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
         if (!success) {
           return;
         }
-        // Recursively call syncWithHost after configuring auth
-        return this.syncWithHost(item);
+        // Recursively call browseFiles after configuring auth
+        return this.browseFiles(item);
       }
       return;
     }

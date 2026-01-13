@@ -128,7 +128,7 @@ export const MESSAGES = {
 export const INSTRUCTIONS = {
   browsePathSelect: 'Navigate using arrows or type a path ending with /',
   browseBookmark: 'Navigate to the directory you want to bookmark',
-  browseSync: 'Click upload/download buttons or select file/folder',
+  browseFiles: 'Click upload/download buttons or select file/folder',
   browseDownload: 'Select a file or folder to download',
   parsingSshConfig: 'Reading SSH config file',
 } as const;

@@ -114,10 +114,10 @@
         "category": "Simple SCP"
       },
       {
-        "command": "simpleScp.syncWithHost",
-        "title": "Sync with Host",
+        "command": "simpleScp.browseFiles",
+        "title": "Browse Files",
         "category": "Simple SCP",
-        "icon": "$(sync)"
+        "icon": "$(folder-opened)"
       },
       {
         "command": "simpleScp.downloadToLocal",
@@ -233,7 +233,7 @@
           "when": "false"
         },
         {
-          "command": "simpleScp.syncWithHost",
+          "command": "simpleScp.browseFiles",
           "when": "false"
         },
         {
@@ -330,7 +330,7 @@
           "group": "inline@2"
         },
         {
-          "command": "simpleScp.syncWithHost",
+          "command": "simpleScp.browseFiles",
           "when": "view == simpleScp.hosts && viewItem == host",
           "group": "1_sync@1"
         },

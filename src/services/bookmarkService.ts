@@ -183,14 +183,14 @@ export class BookmarkService {
       return;
     }
 
-    // Browse from bookmark path
+    // Browse from bookmark path using sync mode (allows both upload and download)
     // First, update the recent path to the bookmark path
     await this.hostManager.recordRecentPath(host.id, bookmark.path);
 
     await this.browseRemoteFilesCallback(
       host,
       authConfig,
-      'browseFiles',
+      'sync',
       `Browse: ${bookmark.name}`
     );
   }
