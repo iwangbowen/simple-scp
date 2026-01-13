@@ -950,36 +950,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     }
   }
 
-  /**
-   * Ask user whether to transfer immediately or add to queue
-   * @returns 'now' | 'queue' | undefined (cancelled)
-   */
-  private async askTransferMode(): Promise<'now' | 'queue' | undefined> {
-    // Check if queue service is available
-    if (!this.transferQueueService) {
-      return 'now'; // Fallback to immediate transfer if queue not available
-    }
 
-    const choice = await vscode.window.showQuickPick(
-      [
-        {
-          label: '$(zap) Transfer Now',
-          description: 'Start transfer immediately',
-          mode: 'now' as const
-        },
-        {
-          label: '$(list-ordered) Add to Queue',
-          description: 'Add to transfer queue for later processing',
-          mode: 'queue' as const
-        }
-      ],
-      {
-        placeHolder: 'How would you like to transfer?'
-      }
-    );
-
-    return choice?.mode;
-  }
 
   private async uploadFile(uri: vscode.Uri): Promise<void> {
     const localPath = uri.fsPath;
@@ -1093,14 +1064,8 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     const fileName = path.basename(localPath);
     const finalRemotePath = `${remotePath}/${fileName}`.replace(/\\/g, '/');
 
-    // Ask user whether to transfer now or add to queue
-    const transferMode = await this.askTransferMode();
-    if (!transferMode) {
-      return; // User cancelled
-    }
-
-    if (transferMode === 'queue' && this.transferQueueService) {
-      // Add to queue
+    // Add to transfer queue (all transfers use queue now)
+    if (this.transferQueueService) {
       const fileSize = stat.size;
       await this.transferQueueService.addTask({
         hostId: config.id,
@@ -1113,7 +1078,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       });
 
       vscode.window.showInformationMessage(
-        `Upload task added to queue: ${fileName}`
+        `Upload started: ${fileName}`
       );
 
       // Record this host as recently used
@@ -1123,9 +1088,9 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       return;
     }
 
-    // Transfer immediately
+    // Fallback to immediate transfer if queue service not available
     logger.info(
-      `Starting upload: ${localPath} → ${config.username}@${config.host}:${finalRemotePath}`
+      `Starting upload (direct): ${localPath} → ${config.username}@${config.host}:${finalRemotePath}`
     );
 
     await vscode.window.withProgress(
@@ -1437,7 +1402,34 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       return;
     }
 
-    // Upload each selected file/folder
+    // Add all selected files to transfer queue
+    if (this.transferQueueService) {
+      for (const uri of uris) {
+        const localPath = uri.fsPath;
+        const fileName = path.basename(localPath);
+        const remoteTargetPath = remoteDir + '/' + fileName;
+        const stat = fs.statSync(localPath);
+
+        await this.transferQueueService.addTask({
+          hostId: config.id,
+          hostName: config.name,
+          type: 'upload',
+          localPath: localPath,
+          remotePath: remoteTargetPath,
+          fileSize: stat.size,
+          isDirectory: stat.isDirectory()
+        });
+      }
+
+      await this.hostManager.recordRecentUsed(config.id);
+      await this.hostManager.recordRecentPath(config.id, remoteDir);
+      vscode.window.showInformationMessage(
+        `${uris.length} upload task(s) started`
+      );
+      return;
+    }
+
+    // Fallback: Upload directly if queue not available
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -1516,8 +1508,31 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
 
     const localPath = saveUri.fsPath;
 
+    // Add to transfer queue
+    if (this.transferQueueService) {
+      await this.transferQueueService.addTask({
+        hostId: config.id,
+        hostName: config.name,
+        type: 'download',
+        localPath: localPath,
+        remotePath: remotePath,
+        fileSize: 0, // Will be determined during transfer
+        isDirectory: isDirectory
+      });
+
+      vscode.window.showInformationMessage(`Download started: ${remoteFileName}`);
+
+      // Record this host as recently used
+      await this.hostManager.recordRecentUsed(config.id);
+      const remoteDir = isDirectory ? remotePath : path.dirname(remotePath);
+      await this.hostManager.recordRecentPath(config.id, remoteDir);
+
+      return;
+    }
+
+    // Fallback: Download directly if queue not available
     logger.info(
-      `Starting download: ${config.username}@${config.host}:${remotePath} → ${localPath}`
+      `Starting download (direct): ${config.username}@${config.host}:${remotePath} → ${localPath}`
     );
 
     try {
@@ -2007,14 +2022,8 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     const remoteFileName = path.basename(remotePath.path);
     const localPath = path.join(targetDir, remoteFileName);
 
-    // Ask user whether to transfer now or add to queue
-    const transferMode = await this.askTransferMode();
-    if (!transferMode) {
-      return; // User cancelled
-    }
-
-    if (transferMode === 'queue' && this.transferQueueService) {
-      // Add to queue
+    // Add to transfer queue (all transfers use queue now)
+    if (this.transferQueueService) {
       await this.transferQueueService.addTask({
         hostId: config.id,
         hostName: config.name,
@@ -2026,7 +2035,7 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       });
 
       vscode.window.showInformationMessage(
-        `Download task added to queue: ${remoteFileName}`
+        `Download started: ${remoteFileName}`
       );
 
       // Record this host as recently used
@@ -2037,9 +2046,9 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
       return;
     }
 
-    // Download immediately
+    // Fallback to immediate download if queue service not available
     logger.info(
-      `Starting download: ${config.username}@${config.host}:${remotePath.path} → ${localPath}`
+      `Starting download (direct): ${config.username}@${config.host}:${remotePath.path} → ${localPath}`
     );
 
     try {
