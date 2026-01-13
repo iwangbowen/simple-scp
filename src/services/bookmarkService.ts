@@ -75,7 +75,6 @@ export class BookmarkService {
 
     try {
       await this.hostManager.addBookmark(host.id, name.trim(), remotePath);
-      vscode.window.showInformationMessage(`Bookmark '${name}' added successfully`);
       this.treeProvider.refresh();
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to add bookmark: ${error}`);
@@ -110,6 +109,46 @@ export class BookmarkService {
 
     await this.hostManager.removeBookmark(hostId, bookmark.name);
     this.treeProvider.refresh();
+  }
+
+  /**
+   * Rename a bookmark
+   */
+  async renameBookmark(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'bookmark') {
+      vscode.window.showWarningMessage('Please select a bookmark');
+      return;
+    }
+
+    const bookmark = item.data as PathBookmark;
+    const hostId = item.hostId;
+
+    if (!hostId) {
+      return;
+    }
+
+    const newName = await vscode.window.showInputBox({
+      prompt: 'Enter new bookmark name',
+      value: bookmark.name,
+      placeHolder: 'e.g., Project Files',
+      validateInput: (value) => {
+        if (!value || !value.trim()) {
+          return 'Bookmark name cannot be empty';
+        }
+        return null;
+      }
+    });
+
+    if (!newName || newName.trim() === bookmark.name) {
+      return; // User cancelled or name unchanged
+    }
+
+    try {
+      await this.hostManager.updateBookmark(hostId, bookmark.name, newName.trim(), bookmark.path);
+      this.treeProvider.refresh();
+    } catch (error) {
+      vscode.window.showErrorMessage(`Failed to rename bookmark: ${error}`);
+    }
   }
 
   /**

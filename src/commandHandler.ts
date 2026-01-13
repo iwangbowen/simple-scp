@@ -95,6 +95,9 @@ export class CommandHandler {
       vscode.commands.registerCommand('simpleScp.addBookmark', (item: HostTreeItem) =>
         this.bookmarkService.addBookmark(item)
       ),
+      vscode.commands.registerCommand('simpleScp.renameBookmark', (item: HostTreeItem) =>
+        this.bookmarkService.renameBookmark(item)
+      ),
       vscode.commands.registerCommand('simpleScp.deleteBookmark', (item: HostTreeItem) =>
         this.bookmarkService.deleteBookmark(item)
       ),
