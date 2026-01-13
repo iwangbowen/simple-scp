@@ -121,9 +121,15 @@ export class SshConnectionManager {
     authConfig: HostAuthConfig,
     localPath: string,
     remotePath: string,
-    onProgress?: (transferred: number, total: number) => void
+    onProgress?: (transferred: number, total: number) => void,
+    signal?: AbortSignal
   ): Promise<void> {
     return this.withConnection(config, authConfig, async (sftp) => {
+      // Check if already aborted
+      if (signal?.aborted) {
+        throw new Error('Transfer aborted');
+      }
+
       // 确保远程目录存在
       const remoteDir = path.dirname(remotePath).replace(/\\/g, '/');
       await sftp.mkdir(remoteDir, true);
@@ -131,6 +137,11 @@ export class SshConnectionManager {
       // 上传文件
       await sftp.fastPut(localPath, remotePath, {
         step: (transferred: number, _chunk: any, total: number) => {
+          // Check for abort signal
+          if (signal?.aborted) {
+            throw new Error('Transfer aborted');
+          }
+
           if (onProgress) {
             onProgress(transferred, total);
           }
@@ -147,7 +158,8 @@ export class SshConnectionManager {
     authConfig: HostAuthConfig,
     localPath: string,
     remotePath: string,
-    onProgress?: (currentFile: string, progress: number) => void
+    onProgress?: (currentFile: string, progress: number) => void,
+    signal?: AbortSignal
   ): Promise<void> {
     return this.withConnection(config, authConfig, async (sftp) => {
       // 获取所有文件
@@ -156,6 +168,11 @@ export class SshConnectionManager {
       let uploadedFiles = 0;
 
       for (const file of files) {
+        // Check for abort signal
+        if (signal?.aborted) {
+          throw new Error('Transfer aborted');
+        }
+
         const relativePath = path.relative(localPath, file);
         const remoteFilePath = path.join(remotePath, relativePath).replace(/\\/g, '/');
         const remoteDir = path.dirname(remoteFilePath).replace(/\\/g, '/');
@@ -183,9 +200,15 @@ export class SshConnectionManager {
     authConfig: HostAuthConfig,
     remotePath: string,
     localPath: string,
-    onProgress?: (transferred: number, total: number) => void
+    onProgress?: (transferred: number, total: number) => void,
+    signal?: AbortSignal
   ): Promise<void> {
     return this.withConnection(config, authConfig, async (sftp) => {
+      // Check if already aborted
+      if (signal?.aborted) {
+        throw new Error('Transfer aborted');
+      }
+
       // 确保本地目录存在
       const localDir = path.dirname(localPath);
       if (!fs.existsSync(localDir)) {
@@ -195,6 +218,11 @@ export class SshConnectionManager {
       // 下载文件
       await sftp.fastGet(remotePath, localPath, {
         step: (transferred: number, _chunk: any, total: number) => {
+          // Check for abort signal
+          if (signal?.aborted) {
+            throw new Error('Transfer aborted');
+          }
+
           if (onProgress) {
             onProgress(transferred, total);
           }
@@ -211,7 +239,8 @@ export class SshConnectionManager {
     authConfig: HostAuthConfig,
     remotePath: string,
     localPath: string,
-    onProgress?: (currentFile: string, progress: number) => void
+    onProgress?: (currentFile: string, progress: number) => void,
+    signal?: AbortSignal
   ): Promise<void> {
     return this.withConnection(config, authConfig, async (sftp) => {
       // 获取所有远程文件
@@ -220,6 +249,11 @@ export class SshConnectionManager {
       let downloadedFiles = 0;
 
       for (const file of files) {
+        // Check for abort signal
+        if (signal?.aborted) {
+          throw new Error('Transfer aborted');
+        }
+
         const relativePath = file.replace(remotePath, '').replace(/^\//, '');
         const localFilePath = path.join(localPath, relativePath);
         const localFileDir = path.dirname(localFilePath);

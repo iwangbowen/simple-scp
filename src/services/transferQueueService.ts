@@ -222,12 +222,8 @@ export class TransferQueueService extends EventEmitter {
             // Update progress based on file count
             task.updateProgress(task.fileSize * percentage / 100, task.fileSize);
             this._onTaskUpdated.fire(task);
-
-            // Check for cancellation
-            if (task.abortController?.signal.aborted) {
-              throw new Error('Transfer cancelled');
-            }
-          }
+          },
+          task.abortController?.signal
         );
       } else {
         await SshConnectionManager.uploadFile(
@@ -238,12 +234,8 @@ export class TransferQueueService extends EventEmitter {
           (transferred: number, total: number) => {
             task.updateProgress(transferred, total);
             this._onTaskUpdated.fire(task);
-
-            // Check for cancellation
-            if (task.abortController?.signal.aborted) {
-              throw new Error('Transfer cancelled');
-            }
-          }
+          },
+          task.abortController?.signal
         );
       }
     } else if (task.type === 'download') {
@@ -258,12 +250,8 @@ export class TransferQueueService extends EventEmitter {
             // Update progress based on file count
             task.updateProgress(task.fileSize * percentage / 100, task.fileSize);
             this._onTaskUpdated.fire(task);
-
-            // Check for cancellation
-            if (task.abortController?.signal.aborted) {
-              throw new Error('Transfer cancelled');
-            }
-          }
+          },
+          task.abortController?.signal
         );
       } else {
         await SshConnectionManager.downloadFile(
@@ -274,12 +262,8 @@ export class TransferQueueService extends EventEmitter {
           (transferred: number, total: number) => {
             task.updateProgress(transferred, total);
             this._onTaskUpdated.fire(task);
-
-            // Check for cancellation
-            if (task.abortController?.signal.aborted) {
-              throw new Error('Transfer cancelled');
-            }
-          }
+          },
+          task.abortController?.signal
         );
       }
     }
