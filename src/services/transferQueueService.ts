@@ -139,6 +139,13 @@ export class TransferQueueService extends EventEmitter {
       this._onTaskUpdated.fire(task);
 
     } catch (error: any) {
+      // Check if task was paused (not a real error)
+      if (task.status === 'paused') {
+        logger.info(`Task ${task.id} paused: ${task.fileName}`);
+        this._onTaskUpdated.fire(task);
+        return; // Don't treat pause as failure
+      }
+
       logger.error(`Task ${task.id} failed: ${error.message}`);
 
       // Check if we should retry
