@@ -1,5 +1,41 @@
 # Change Log
 
+## [0.9.9] - 2026-01-13
+
+### Added
+
+- **Duplicate Host**: Quickly create host duplicates with one click
+  - Intelligent naming with " (Copy)" suffix and automatic numbering
+  - Copies all configurations: address, port, username, path, group, color, starred status
+  - Preserves authentication settings (password/private key)
+  - Optional immediate editing after creation
+  - Accessible via context menu (first action item)
+
+### Enhanced
+
+- **Browse Files**: Renamed from "Sync with Host" for clearer semantics
+  - Updated icon from sync to folder-opened
+  - Title changed to "Browse Files"
+  - Better reflects bidirectional file management capabilities
+
+### Improved
+
+- **Unified UI Layout**: Consistent inline button arrangement for hosts and bookmarks
+  - Browse Files button appears first (folder icon)
+  - Edit button appears second (edit icon)
+  - Toggle Star moved from inline to context menu
+  - Cleaner, more intuitive interface
+
+- **Path Logic Separation**: Independent browsing paths for hosts and bookmarks
+  - Host Browse Files: Always starts from configured defaultRemotePath
+  - Bookmark Browse Files: Always starts from bookmark path
+  - No cross-interference between host and bookmark browsing sessions
+
+- **Bookmark Browse Enhancement**: Bookmarks now use sync mode
+  - Supports both upload and download operations
+  - Same powerful capabilities as host browsing
+  - Reuses proven sync functionality
+
 ## [0.9.8] - 2026-01-12
 
 ### Added
