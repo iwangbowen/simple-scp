@@ -1698,8 +1698,6 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
         isDirectory: isDirectory
       });
 
-      vscode.window.showInformationMessage(`Download started: ${remoteFileName}`);
-
       // Record this host as recently used
       await this.hostManager.recordRecentUsed(config.id);
       const remoteDir = isDirectory ? remotePath : path.dirname(remotePath);
@@ -2211,10 +2209,6 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
         fileSize: 0, // Will be determined during transfer
         isDirectory: remotePath.isDirectory
       });
-
-      vscode.window.showInformationMessage(
-        `Download started: ${remoteFileName}`
-      );
 
       // Record this host as recently used
       await this.hostManager.recordRecentUsed(config.id);
