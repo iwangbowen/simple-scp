@@ -165,22 +165,39 @@ export class TransferQueueTreeProvider implements vscode.TreeDataProvider<Transf
 
     if (this.showHistory && this.historyService) {
       tasks = this.historyService.getRecentHistory(50);
+      logger.info(`Transfer queue tree: showing ${tasks.length} history items`);
     } else {
       tasks = this.queueService.getAllTasks();
+      logger.info(`Transfer queue tree: got ${tasks.length} tasks from queue`);
 
       // Filter by status if set
       if (this.filterStatus) {
         tasks = tasks.filter(t => t.status === this.filterStatus);
+        logger.info(`Transfer queue tree: filtered to ${tasks.length} tasks with status ${this.filterStatus}`);
       }
 
       // Filter out completed unless showing them
       if (!this.showCompleted) {
+        const beforeFilter = tasks.length;
         tasks = tasks.filter(t =>
           t.status !== 'completed' &&
           t.status !== 'failed' &&
           t.status !== 'cancelled'
         );
+        logger.info(`Transfer queue tree: filtered out completed tasks (${beforeFilter} -> ${tasks.length})`);
       }
+    }
+
+    // If no tasks, show a placeholder message
+    if (tasks.length === 0) {
+      const placeholderItem = new vscode.TreeItem('No transfer tasks');
+      placeholderItem.description = this.showHistory
+        ? 'No transfer history available'
+        : 'Queue is empty';
+      placeholderItem.iconPath = new vscode.ThemeIcon('info');
+      placeholderItem.contextValue = 'placeholder';
+      logger.info('Transfer queue tree: showing placeholder (no tasks)');
+      return Promise.resolve([placeholderItem as any]);
     }
 
     // Create tree items
@@ -188,6 +205,7 @@ export class TransferQueueTreeProvider implements vscode.TreeDataProvider<Transf
       new TransferQueueTreeItem(task, vscode.TreeItemCollapsibleState.None)
     );
 
+    logger.info(`Transfer queue tree: returning ${items.length} tree items`);
     return Promise.resolve(items);
   }
 
