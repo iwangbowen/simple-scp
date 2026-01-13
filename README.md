@@ -86,9 +86,41 @@ If you find this extension helpful, consider buying me a coffee!
 3. Choose a group or create a new one
 4. Imported hosts will appear in the TreeView
 
+#### Import and Export Hosts
+
+##### Export Hosts
+
+Export your host configurations to a JSON file for backup or sharing:
+
+- **Export All Hosts**: Click the export icon in the toolbar or use Command Palette → "Simple SCP: Export All Hosts"
+- **Export Group**: Right-click a group → "Export Group"
+- **Export Single Host**: Right-click a host → "Export Host"
+
+The exported JSON file contains:
+- Host configurations (name, address, port, username, paths, colors, etc.)
+- Group information
+- Bookmarks and recent paths
+- **Note**: Authentication credentials (passwords, private keys) are **not** exported for security reasons
+
+##### Import Hosts
+
+Import host configurations from a JSON file:
+
+1. Click "Import Hosts" in the toolbar or use Command Palette → "Simple SCP: Import Hosts"
+2. Select the JSON file to import
+3. Review the import preview showing new and duplicate hosts
+4. Confirm to import
+
+**Import Behavior**:
+- **New hosts**: Automatically imported
+- **Duplicate hosts** (same `username@host:port`): Automatically skipped
+- **Groups**: Existing groups are merged; new groups are created
+- **Authentication**: Must be configured separately after import
+
 #### Configure Authentication
 
 ##### Option 1: Configure Manually
+
 1. Right-click a host in the TreeView
 2. Select "Configure Authentication"
 3. Choose authentication method:
@@ -97,6 +129,7 @@ If you find this extension helpful, consider buying me a coffee!
    - SSH Agent
 
 ##### Option 2: Setup Passwordless Login
+
 1. Right-click a host
 2. Select "Setup Passwordless Login"
 3. Enter your password when prompted
@@ -334,6 +367,37 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 2. 从 ~/.ssh/config 中选择要导入的主机
 3. 选择一个分组或创建新分组
 4. 导入的主机将出现在树形视图中
+
+#### 导入和导出主机
+
+##### 导出主机
+
+将主机配置导出为 JSON 文件，用于备份或分享：
+
+- **导出所有主机**：点击工具栏中的导出图标，或使用命令面板 → "Simple SCP: Export All Hosts"
+- **导出分组**：右键点击分组 → "Export Group"
+- **导出单个主机**：右键点击主机 → "Export Host"
+
+导出的 JSON 文件包含：
+- 主机配置（名称、地址、端口、用户名、路径、颜色等）
+- 分组信息
+- 书签和最近使用的路径
+- **注意**：出于安全考虑，认证凭据（密码、私钥）**不会**被导出
+
+##### 导入主机
+
+从 JSON 文件导入主机配置：
+
+1. 点击工具栏中的"Import Hosts"，或使用命令面板 → "Simple SCP: Import Hosts"
+2. 选择要导入的 JSON 文件
+3. 查看导入预览，显示新增和重复的主机
+4. 确认导入
+
+**导入行为**：
+- **新主机**：自动导入
+- **重复主机**（相同的 `username@host:port`）：自动跳过
+- **分组**：现有分组自动合并；新分组会被创建
+- **认证**：导入后需要单独配置认证
 
 #### 配置认证
 

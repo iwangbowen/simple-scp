@@ -411,4 +411,181 @@ export class HostManager {
   private generateId(): string {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
+
+  /**
+   * Export configuration format
+   */
+  private createExportData(hosts: HostConfig[], groups: GroupConfig[]) {
+    return {
+      version: '1.0.0',
+      exportDate: new Date().toISOString(),
+      hosts: hosts.map(h => ({
+        name: h.name,
+        host: h.host,
+        port: h.port,
+        username: h.username,
+        group: h.group,
+        defaultRemotePath: h.defaultRemotePath,
+        color: h.color,
+        starred: h.starred,
+        recentPaths: h.recentPaths,
+        bookmarks: h.bookmarks
+      })),
+      groups: groups.map(g => ({
+        id: g.id,
+        name: g.name
+      }))
+    };
+  }
+
+  /**
+   * Export all hosts to JSON format
+   */
+  async exportAllHosts(): Promise<string> {
+    const data = await this.loadData();
+    const exportData = this.createExportData(data.hosts, data.groups);
+    return JSON.stringify(exportData, null, 2);
+  }
+
+  /**
+   * Export hosts in a specific group
+   */
+  async exportGroup(groupId: string): Promise<string> {
+    const data = await this.loadData();
+    const hostsInGroup = data.hosts.filter(h => h.group === groupId);
+    const group = data.groups.find(g => g.id === groupId);
+    const groups = group ? [group] : [];
+
+    const exportData = this.createExportData(hostsInGroup, groups);
+    return JSON.stringify(exportData, null, 2);
+  }
+
+  /**
+   * Export a single host
+   */
+  async exportHost(hostId: string): Promise<string> {
+    const data = await this.loadData();
+    const host = data.hosts.find(h => h.id === hostId);
+
+    if (!host) {
+      throw new Error('Host not found');
+    }
+
+    // Include the group if the host belongs to one
+    const groups: GroupConfig[] = [];
+    if (host.group) {
+      const group = data.groups.find(g => g.id === host.group);
+      if (group) {
+        groups.push(group);
+      }
+    }
+
+    const exportData = this.createExportData([host], groups);
+    return JSON.stringify(exportData, null, 2);
+  }
+
+  /**
+   * Import hosts from JSON data
+   * Returns: { imported: number, skipped: number, message: string }
+   */
+  async importHosts(jsonData: string): Promise<{ imported: number; skipped: number; message: string }> {
+    let importData: any;
+
+    try {
+      importData = JSON.parse(jsonData);
+    } catch (error: any) {
+      throw new Error(`Invalid JSON format: ${error.message || 'Unknown error'}`);
+    }
+
+    // Validate format
+    if (!importData.hosts || !Array.isArray(importData.hosts)) {
+      throw new Error('Invalid import data: missing or invalid hosts array');
+    }
+
+    const data = await this.loadData();
+    let imported = 0;
+    let skipped = 0;
+    const skippedHosts: string[] = [];
+
+    // Import groups first (merge if exists)
+    const groupIdMapping: Map<string, string> = new Map();
+    if (importData.groups && Array.isArray(importData.groups)) {
+      for (const importGroup of importData.groups) {
+        const existingGroup = data.groups.find(g => g.name === importGroup.name);
+        if (existingGroup) {
+          // Group exists, use existing ID
+          groupIdMapping.set(importGroup.id, existingGroup.id);
+        } else {
+          // Create new group
+          const newGroupId = this.generateId();
+          data.groups.push({
+            id: newGroupId,
+            name: importGroup.name
+          });
+          groupIdMapping.set(importGroup.id, newGroupId);
+        }
+      }
+    }
+
+    // Import hosts
+    for (const importHost of importData.hosts) {
+      // Validate required fields
+      if (!importHost.host || !importHost.username) {
+        skipped++;
+        continue;
+      }
+
+      // Check if host already exists (by username@host:port)
+      const port = importHost.port || 22;
+      const exists = data.hosts.some(
+        h => h.host === importHost.host &&
+             h.username === importHost.username &&
+             h.port === port
+      );
+
+      if (exists) {
+        skipped++;
+        skippedHosts.push(`${importHost.name} (${importHost.username}@${importHost.host}:${port})`);
+        continue;
+      }
+
+      // Map group ID if needed
+      let groupId = importHost.group;
+      if (groupId && groupIdMapping.has(groupId)) {
+        groupId = groupIdMapping.get(groupId);
+      }
+
+      // Add new host
+      const newHost: HostConfig = {
+        id: this.generateId(),
+        name: importHost.name || `${importHost.username}@${importHost.host}`,
+        host: importHost.host,
+        port: port,
+        username: importHost.username,
+        group: groupId,
+        defaultRemotePath: importHost.defaultRemotePath,
+        color: importHost.color,
+        starred: importHost.starred || false,
+        recentPaths: importHost.recentPaths || [],
+        bookmarks: importHost.bookmarks || []
+      };
+
+      data.hosts.push(newHost);
+      imported++;
+    }
+
+    // Save changes
+    await this.saveData(data);
+
+    // Generate result message
+    let message = `Successfully imported ${imported} host(s)`;
+    if (skipped > 0) {
+      message += `, skipped ${skipped} duplicate host(s)`;
+      if (skippedHosts.length > 0 && skippedHosts.length <= 5) {
+        message += `:\n${skippedHosts.join('\n')}`;
+      }
+    }
+
+    return { imported, skipped, message };
+  }
 }

@@ -120,6 +120,30 @@
         "icon": "$(cloud-download)"
       },
       {
+        "command": "simpleScp.exportAllHosts",
+        "title": "Export All Hosts",
+        "category": "Simple SCP",
+        "icon": "$(export)"
+      },
+      {
+        "command": "simpleScp.exportGroup",
+        "title": "Export Group",
+        "category": "Simple SCP",
+        "icon": "$(export)"
+      },
+      {
+        "command": "simpleScp.exportHost",
+        "title": "Export Host",
+        "category": "Simple SCP",
+        "icon": "$(export)"
+      },
+      {
+        "command": "simpleScp.importHosts",
+        "title": "Import Hosts",
+        "category": "Simple SCP",
+        "icon": "$(cloud-upload)"
+      },
+      {
         "command": "simpleScp.uploadFile",
         "title": "Upload to Remote Host",
         "category": "Simple SCP"
@@ -312,6 +336,20 @@
           "command": "simpleScp.importFromSshConfig"
         },
         {
+          "command": "simpleScp.exportAllHosts"
+        },
+        {
+          "command": "simpleScp.exportGroup",
+          "when": "false"
+        },
+        {
+          "command": "simpleScp.exportHost",
+          "when": "false"
+        },
+        {
+          "command": "simpleScp.importHosts"
+        },
+        {
           "command": "simpleScp.showLogs"
         },
         {
@@ -411,6 +449,16 @@
           "group": "1_import@1"
         },
         {
+          "command": "simpleScp.exportAllHosts",
+          "when": "view == simpleScp.hosts",
+          "group": "1_import@2"
+        },
+        {
+          "command": "simpleScp.importHosts",
+          "when": "view == simpleScp.hosts",
+          "group": "1_import@3"
+        },
+        {
           "command": "simpleScp.pauseQueue",
           "when": "view == simpleScp.transferQueue",
           "group": "navigation@1"
@@ -493,6 +541,11 @@
           "group": "3_bookmarks@1"
         },
         {
+          "command": "simpleScp.exportHost",
+          "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "4_export@1"
+        },
+        {
           "command": "simpleScp.deleteHost",
           "when": "view == simpleScp.hosts && viewItem == host",
           "group": "9_danger@1"
@@ -521,6 +574,11 @@
           "command": "simpleScp.editGroup",
           "when": "view == simpleScp.hosts && viewItem == group",
           "group": "inline@2"
+        },
+        {
+          "command": "simpleScp.exportGroup",
+          "when": "view == simpleScp.hosts && viewItem == group",
+          "group": "1_export@1"
         },
         {
           "command": "simpleScp.deleteHost",

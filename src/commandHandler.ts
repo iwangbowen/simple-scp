@@ -76,6 +76,18 @@ export class CommandHandler {
       vscode.commands.registerCommand('simpleScp.importFromSshConfig', () =>
         this.importFromSshConfig()
       ),
+      vscode.commands.registerCommand('simpleScp.exportAllHosts', () =>
+        this.exportAllHosts()
+      ),
+      vscode.commands.registerCommand('simpleScp.exportGroup', (item: HostTreeItem) =>
+        this.exportGroup(item)
+      ),
+      vscode.commands.registerCommand('simpleScp.exportHost', (item: HostTreeItem) =>
+        this.exportHost(item)
+      ),
+      vscode.commands.registerCommand('simpleScp.importHosts', () =>
+        this.importHosts()
+      ),
       vscode.commands.registerCommand('simpleScp.uploadFile', (uri: vscode.Uri) =>
         this.uploadFile(uri)
       ),
@@ -950,6 +962,162 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     }
   }
 
+  /**
+   * Export all hosts to JSON file
+   */
+  private async exportAllHosts(): Promise<void> {
+    try {
+      const jsonData = await this.hostManager.exportAllHosts();
+      await this.saveExportFile(jsonData, 'all-hosts');
+    } catch (error) {
+      vscode.window.showErrorMessage(`Export failed: ${error}`);
+    }
+  }
+
+  /**
+   * Export a specific group to JSON file
+   */
+  private async exportGroup(item: HostTreeItem): Promise<void> {
+    if (item.contextValue !== 'group') {
+      return;
+    }
+
+    try {
+      const jsonData = await this.hostManager.exportGroup(item.id);
+      const group = (await this.hostManager.getGroups()).find(g => g.id === item.id);
+      const fileName = group ? group.name.toLowerCase().replace(/\s+/g, '-') : 'group';
+      await this.saveExportFile(jsonData, fileName);
+    } catch (error) {
+      vscode.window.showErrorMessage(`Export failed: ${error}`);
+    }
+  }
+
+  /**
+   * Export a single host to JSON file
+   */
+  private async exportHost(item: HostTreeItem): Promise<void> {
+    if (item.contextValue !== 'host') {
+      return;
+    }
+
+    try {
+      const jsonData = await this.hostManager.exportHost(item.id);
+      const host = (await this.hostManager.getHosts()).find(h => h.id === item.id);
+      const fileName = host ? host.name.toLowerCase().replace(/\s+/g, '-') : 'host';
+      await this.saveExportFile(jsonData, fileName);
+    } catch (error) {
+      vscode.window.showErrorMessage(`Export failed: ${error}`);
+    }
+  }
+
+  /**
+   * Helper method to save export data to file
+   */
+  private async saveExportFile(jsonData: string, defaultName: string): Promise<void> {
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file(path.join(os.homedir(), `simple-scp-${defaultName}.json`)),
+      filters: {
+        'JSON Files': ['json'],
+        'All Files': ['*']
+      },
+      saveLabel: 'Export'
+    });
+
+    if (!uri) {
+      return;
+    }
+
+    fs.writeFileSync(uri.fsPath, jsonData, 'utf-8');
+    vscode.window.showInformationMessage(`Successfully exported to ${path.basename(uri.fsPath)}`);
+  }
+
+  /**
+   * Import hosts from JSON file
+   */
+  private async importHosts(): Promise<void> {
+    try {
+      // Select JSON file
+      const uris = await vscode.window.showOpenDialog({
+        canSelectMany: false,
+        filters: {
+          'JSON Files': ['json'],
+          'All Files': ['*']
+        },
+        openLabel: 'Import'
+      });
+
+      if (!uris || uris.length === 0) {
+        return;
+      }
+
+      const filePath = uris[0].fsPath;
+      const jsonData = fs.readFileSync(filePath, 'utf-8');
+
+      // Parse and preview
+      let importData: any;
+      try {
+        importData = JSON.parse(jsonData);
+      } catch (error: any) {
+        vscode.window.showErrorMessage(`Invalid JSON file: ${error.message}`);
+        return;
+      }
+
+      if (!importData.hosts || !Array.isArray(importData.hosts)) {
+        vscode.window.showErrorMessage('Invalid import file: missing or invalid hosts array');
+        return;
+      }
+
+      // Show preview
+      const totalHosts = importData.hosts.length;
+      const existingHosts = await this.hostManager.getHosts();
+
+      // Count conflicts
+      const conflicts = importData.hosts.filter((importHost: any) => {
+        const port = importHost.port || 22;
+        return existingHosts.some(
+          h => h.host === importHost.host &&
+               h.username === importHost.username &&
+               h.port === port
+        );
+      });
+
+      const newHostsCount = totalHosts - conflicts.length;
+
+      // Show confirmation with preview
+      const message = conflicts.length > 0
+        ? `Found ${totalHosts} host(s): ${newHostsCount} new, ${conflicts.length} duplicate (will be skipped). Continue?`
+        : `Found ${totalHosts} new host(s). Continue?`;
+
+      const confirm = await vscode.window.showInformationMessage(
+        message,
+        { modal: true },
+        'Import',
+        'Cancel'
+      );
+
+      if (confirm !== 'Import') {
+        return;
+      }
+
+      // Import with progress
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: 'Importing hosts...',
+          cancellable: false
+        },
+        async () => {
+          const result = await this.hostManager.importHosts(jsonData);
+          this.treeProvider.refresh();
+
+          vscode.window.showInformationMessage(result.message);
+        }
+      );
+
+    } catch (error) {
+      vscode.window.showErrorMessage(`Import failed: ${error}`);
+    }
+  }
 
 
   private async uploadFile(uri: vscode.Uri): Promise<void> {
