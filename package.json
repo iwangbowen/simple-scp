@@ -750,12 +750,15 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "vitest run",
+    "test:unit": "vitest run --exclude **/integration-tests/**",
+    "test:integration": "vitest run src/integration-tests",
+    "test:all": "npm run test:unit && npm run test:integration",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "prepackage": "npm test",
+    "prepackage": "npm run test:all",
     "package": "vsce package",
-    "prepublish": "npm test",
+    "prepublish": "npm run test:all",
     "publish": "vsce publish"
   },
   "devDependencies": {
