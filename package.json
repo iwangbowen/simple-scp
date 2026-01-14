@@ -753,7 +753,9 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
+    "prepackage": "npm test",
     "package": "vsce package",
+    "prepublish": "npm test",
     "publish": "vsce publish"
   },
   "devDependencies": {
