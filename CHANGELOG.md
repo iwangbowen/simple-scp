@@ -1,5 +1,16 @@
 # Change Log
 
+## [1.0.8] - 2026-01-14
+
+### Added
+
+- **Drag and Drop Hosts Between Groups**: Move hosts between groups using drag and drop
+  - Only hosts can be dragged (groups and bookmarks cannot be dragged)
+  - Drag hosts to groups to move them
+  - Drag hosts to empty space (root level) to remove group assignment
+  - Visual feedback during drag operation
+  - Implemented using VS Code TreeDragAndDropController API
+
 ## [1.0.7] - 2026-01-14
 
 ### Added
