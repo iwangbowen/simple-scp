@@ -54,6 +54,11 @@
           "id": "simpleScp.transferQueue",
           "name": "Transfer Queue",
           "icon": "$(cloud-upload)"
+        },
+        {
+          "id": "simpleScp.helpFeedback",
+          "name": "Help and Feedback",
+          "icon": "$(question)"
         }
       ]
     },
@@ -314,6 +319,30 @@
         "title": "Clear Transfer History",
         "category": "Simple SCP",
         "icon": "$(clear-all)"
+      },
+      {
+        "command": "simpleScp.openGitHubReadme",
+        "title": "Read Documentation",
+        "category": "Simple SCP",
+        "icon": "$(book)"
+      },
+      {
+        "command": "simpleScp.openIssues",
+        "title": "Review Issues",
+        "category": "Simple SCP",
+        "icon": "$(issues)"
+      },
+      {
+        "command": "simpleScp.reportIssue",
+        "title": "Report Issue",
+        "category": "Simple SCP",
+        "icon": "$(comment)"
+      },
+      {
+        "command": "simpleScp.openGitHubRepo",
+        "title": "View on GitHub",
+        "category": "Simple SCP",
+        "icon": "$(github)"
       }
     ],
     "menus": {

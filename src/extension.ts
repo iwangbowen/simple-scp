@@ -6,6 +6,7 @@ import { CommandHandler } from './commandHandler';
 import { TransferQueueService } from './services/transferQueueService';
 import { TransferHistoryService } from './services/transferHistoryService';
 import { TransferQueueTreeProvider } from './ui/transferQueueTreeProvider';
+import { HelpFeedbackTreeProvider } from './ui/helpFeedbackTreeProvider';
 import { TransferQueueCommands } from './integrations/transferQueueCommands';
 import { formatSpeed } from './utils/formatUtils';
 import { logger } from './logger';
@@ -60,6 +61,14 @@ export async function activate(context: vscode.ExtensionContext) {
   });
   context.subscriptions.push(transferQueueView);
   logger.info('Transfer queue tree view registered');
+
+  // Create help and feedback TreeView provider
+  const helpFeedbackTreeProvider = new HelpFeedbackTreeProvider();
+  const helpFeedbackView = vscode.window.createTreeView('simpleScp.helpFeedback', {
+    treeDataProvider: helpFeedbackTreeProvider
+  });
+  context.subscriptions.push(helpFeedbackView);
+  logger.info('Help and feedback tree view registered');
 
   // Register command handler with transfer queue service
   const commandHandler = new CommandHandler(hostManager, authManager, treeProvider, transferQueueService);
@@ -116,7 +125,23 @@ export async function activate(context: vscode.ExtensionContext) {
     ),
     vscode.commands.registerCommand('simpleScp.clearHistory', () =>
       transferQueueCommands.clearHistory()
-    )
+    ),
+
+    // Help and feedback commands
+    vscode.commands.registerCommand('simpleScp.openGitHubReadme', () => {
+      vscode.env.openExternal(vscode.Uri.parse('https://github.com/iwangbowen/simple-scp#readme'));
+    }),
+    vscode.commands.registerCommand('simpleScp.openIssues', () => {
+      vscode.env.openExternal(vscode.Uri.parse('https://github.com/iwangbowen/simple-scp/issues'));
+    }),
+    vscode.commands.registerCommand('simpleScp.reportIssue', () => {
+      vscode.commands.executeCommand('workbench.action.openIssueReporter', {
+        extensionId: 'WangBowen.simple-scp'
+      });
+    }),
+    vscode.commands.registerCommand('simpleScp.openGitHubRepo', () => {
+      vscode.env.openExternal(vscode.Uri.parse('https://github.com/iwangbowen/simple-scp'));
+    })
   );
   logger.info('Transfer queue commands registered');
 
