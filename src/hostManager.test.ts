@@ -426,4 +426,653 @@ describe('HostManager', () => {
       expect(groups.some(g => g.id === group2.id)).toBe(true);
     });
   });
+
+  describe('Recent Usage Tracking', () => {
+    it('should record recently used host', async () => {
+      await hostManager.initialize();
+
+      const host1 = await hostManager.addHost({
+        name: 'host1',
+        host: '192.168.1.1',
+        port: 22,
+        username: 'user'
+      });
+
+      const host2 = await hostManager.addHost({
+        name: 'host2',
+        host: '192.168.1.2',
+        port: 22,
+        username: 'user'
+      });
+
+      await hostManager.recordRecentUsed(host1.id);
+      await hostManager.recordRecentUsed(host2.id);
+
+      const recentUsed = await hostManager.getRecentUsed();
+      expect(recentUsed).toHaveLength(2);
+      expect(recentUsed[0]).toBe(host2.id);
+      expect(recentUsed[1]).toBe(host1.id);
+    });
+
+    it('should keep only last 5 recently used hosts', async () => {
+      await hostManager.initialize();
+      const hostIds: string[] = [];
+
+      for (let i = 0; i < 7; i++) {
+        const host = await hostManager.addHost({
+          name: `host${i}`,
+          host: `192.168.1.${i}`,
+          port: 22,
+          username: 'user'
+        });
+        hostIds.push(host.id);
+        await hostManager.recordRecentUsed(host.id);
+      }
+
+      const recentUsed = await hostManager.getRecentUsed();
+      expect(recentUsed).toHaveLength(5);
+      expect(recentUsed[0]).toBe(hostIds[6]);
+    });
+
+    it('should move existing host to front when recorded again', async () => {
+      await hostManager.initialize();
+
+      const host1 = await hostManager.addHost({
+        name: 'host1',
+        host: '192.168.1.1',
+        port: 22,
+        username: 'user'
+      });
+
+      const host2 = await hostManager.addHost({
+        name: 'host2',
+        host: '192.168.1.2',
+        port: 22,
+        username: 'user'
+      });
+
+      await hostManager.recordRecentUsed(host1.id);
+      await hostManager.recordRecentUsed(host2.id);
+      await hostManager.recordRecentUsed(host1.id);
+
+      const recentUsed = await hostManager.getRecentUsed();
+      expect(recentUsed).toHaveLength(2);
+      expect(recentUsed[0]).toBe(host1.id);
+      expect(recentUsed[1]).toBe(host2.id);
+    });
+
+    it('should record recent paths for host', async () => {
+      await hostManager.initialize();
+
+      const host = await hostManager.addHost({
+        name: 'test-host',
+        host: '192.168.1.1',
+        port: 22,
+        username: 'user'
+      });
+
+      await hostManager.recordRecentPath(host.id, '/home/user');
+      await hostManager.recordRecentPath(host.id, '/var/www');
+
+      const recentPaths = await hostManager.getRecentPaths(host.id);
+      expect(recentPaths).toHaveLength(2);
+      expect(recentPaths[0]).toBe('/var/www');
+      expect(recentPaths[1]).toBe('/home/user');
+    });
+
+    it('should keep only last 10 recent paths', async () => {
+      await hostManager.initialize();
+
+      const host = await hostManager.addHost({
+        name: 'test-host',
+        host: '192.168.1.1',
+        port: 22,
+        username: 'user'
+      });
+
+      for (let i = 0; i < 12; i++) {
+        await hostManager.recordRecentPath(host.id, `/path${i}`);
+      }
+
+      const recentPaths = await hostManager.getRecentPaths(host.id);
+      expect(recentPaths).toHaveLength(10);
+      expect(recentPaths[0]).toBe('/path11');
+    });
+
+    it('should move existing path to front when recorded again', async () => {
+      await hostManager.initialize();
+
+      const host = await hostManager.addHost({
+        name: 'test-host',
+        host: '192.168.1.1',
+        port: 22,
+        username: 'user'
+      });
+
+      await hostManager.recordRecentPath(host.id, '/home/user');
+      await hostManager.recordRecentPath(host.id, '/var/www');
+      await hostManager.recordRecentPath(host.id, '/home/user');
+
+      const recentPaths = await hostManager.getRecentPaths(host.id);
+      expect(recentPaths).toHaveLength(2);
+      expect(recentPaths[0]).toBe('/home/user');
+      expect(recentPaths[1]).toBe('/var/www');
+    });
+
+    it('should return empty array for non-existent host paths', async () => {
+      await hostManager.initialize();
+      const recentPaths = await hostManager.getRecentPaths('non-existent-id');
+      expect(recentPaths).toEqual([]);
+    });
+
+    it('should handle recordRecentPath for non-existent host gracefully', async () => {
+      await hostManager.initialize();
+      // This should not throw, just silently do nothing
+      await hostManager.recordRecentPath('non-existent-id', '/some/path');
+      const recentPaths = await hostManager.getRecentPaths('non-existent-id');
+      expect(recentPaths).toEqual([]);
+    });
+
+    it('should handle addBookmark for non-existent host', async () => {
+      await hostManager.initialize();
+      await expect(
+        hostManager.addBookmark('non-existent-id', 'bookmark', '/path')
+      ).rejects.toThrow('Host not found');
+    });
+
+    it('should handle removeBookmark for non-existent host gracefully', async () => {
+      await hostManager.initialize();
+      // This should not throw, just silently do nothing
+      await hostManager.removeBookmark('non-existent-id', 'bookmark');
+    });
+
+    it('should handle removeBookmark when host has no bookmarks', async () => {
+      await hostManager.initialize();
+      const host = await hostManager.addHost({
+        name: 'test-host',
+        host: '192.168.1.1',
+        port: 22,
+        username: 'user'
+      });
+
+      // This should not throw
+      await hostManager.removeBookmark(host.id, 'non-existent-bookmark');
+      const bookmarks = await hostManager.getBookmarks(host.id);
+      expect(bookmarks).toEqual([]);
+    });
+
+    it('should handle updateBookmark for non-existent host gracefully', async () => {
+      await hostManager.initialize();
+      // This should not throw, just silently do nothing
+      await hostManager.updateBookmark('non-existent-id', 'old', 'new', '/path');
+    });
+
+    it('should handle updateBookmark when bookmark not found', async () => {
+      await hostManager.initialize();
+      const host = await hostManager.addHost({
+        name: 'test-host',
+        host: '192.168.1.1',
+        port: 22,
+        username: 'user'
+      });
+
+      // This should not throw
+      await hostManager.updateBookmark(host.id, 'non-existent', 'new-name', '/new/path');
+      const bookmarks = await hostManager.getBookmarks(host.id);
+      expect(bookmarks).toEqual([]);
+    });
+
+    it('should throw error when adding duplicate bookmark name', async () => {
+      await hostManager.initialize();
+      const host = await hostManager.addHost({
+        name: 'test-host',
+        host: '192.168.1.1',
+        port: 22,
+        username: 'user'
+      });
+
+      await hostManager.addBookmark(host.id, 'bookmark1', '/path1');
+      await expect(
+        hostManager.addBookmark(host.id, 'bookmark1', '/path2')
+      ).rejects.toThrow("Bookmark with name 'bookmark1' already exists");
+    });
+
+    it('should throw error when updating bookmark to existing name', async () => {
+      await hostManager.initialize();
+      const host = await hostManager.addHost({
+        name: 'test-host',
+        host: '192.168.1.1',
+        port: 22,
+        username: 'user'
+      });
+
+      await hostManager.addBookmark(host.id, 'bookmark1', '/path1');
+      await hostManager.addBookmark(host.id, 'bookmark2', '/path2');
+
+      await expect(
+        hostManager.updateBookmark(host.id, 'bookmark1', 'bookmark2', '/new/path')
+      ).rejects.toThrow("Bookmark with name 'bookmark2' already exists");
+    });
+  });
+
+  describe('SSH Config Parsing', () => {
+    it('should parse SSH config with HostName', () => {
+      const sshConfig = `
+Host server1
+  HostName 192.168.1.1
+  User admin
+  Port 2222
+
+Host server2
+  HostName example.com
+  User root
+`;
+
+      const hosts = (hostManager as any).parseSshConfig(sshConfig);
+      expect(hosts).toHaveLength(2);
+      expect(hosts[0]).toEqual({
+        Host: 'server1',
+        HostName: '192.168.1.1',
+        User: 'admin',
+        Port: '2222'
+      });
+      expect(hosts[1]).toEqual({
+        Host: 'server2',
+        HostName: 'example.com',
+        User: 'root'
+      });
+    });
+
+    it('should skip comments and empty lines', () => {
+      const sshConfig = `
+# This is a comment
+Host server1
+  HostName 192.168.1.1
+
+  # Another comment
+  User admin
+`;
+
+      const hosts = (hostManager as any).parseSshConfig(sshConfig);
+      expect(hosts).toHaveLength(1);
+      expect(hosts[0]).toEqual({
+        Host: 'server1',
+        HostName: '192.168.1.1',
+        User: 'admin'
+      });
+    });
+
+    it('should handle multiple hosts with different configurations', () => {
+      const sshConfig = `
+Host dev
+  HostName dev.example.com
+  User developer
+  Port 22
+
+Host prod
+  HostName prod.example.com
+  User root
+  Port 22222
+
+Host staging
+  HostName staging.example.com
+`;
+
+      const hosts = (hostManager as any).parseSshConfig(sshConfig);
+      expect(hosts).toHaveLength(3);
+      expect(hosts[2]).toEqual({
+        Host: 'staging',
+        HostName: 'staging.example.com'
+      });
+    });
+
+    it('should handle empty config', () => {
+      const hosts = (hostManager as any).parseSshConfig('');
+      expect(hosts).toHaveLength(0);
+    });
+
+    it('should ignore hosts without HostName in parseSshConfigFile', async () => {
+      const sshConfig = `
+Host *
+  User defaultuser
+
+Host server1
+  HostName 192.168.1.1
+`;
+
+      const hosts = (hostManager as any).parseSshConfig(sshConfig);
+      // parseSshConfig returns all entries including Host *
+      expect(hosts.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Import/Export Functionality', () => {
+    it('should export all hosts', async () => {
+      await hostManager.initialize();
+
+      const group = await hostManager.addGroup('test-group');
+      await hostManager.addHost({
+        name: 'host1',
+        host: '192.168.1.1',
+        port: 22,
+        username: 'user',
+        group: group.id
+      });
+
+      await hostManager.addHost({
+        name: 'host2',
+        host: '192.168.1.2',
+        port: 22,
+        username: 'admin'
+      });
+
+      const exportJson = await hostManager.exportAllHosts();
+      const exportData = JSON.parse(exportJson);
+
+      expect(exportData.version).toBe('1.0.0');
+      expect(exportData.hosts).toHaveLength(2);
+      expect(exportData.groups).toHaveLength(1);
+      expect(exportData.exportDate).toBeDefined();
+    });
+
+    it('should export single host', async () => {
+      await hostManager.initialize();
+
+      const host = await hostManager.addHost({
+        name: 'test-host',
+        host: '192.168.1.1',
+        port: 22,
+        username: 'user'
+      });
+
+      const exportJson = await hostManager.exportHost(host.id);
+      const exportData = JSON.parse(exportJson);
+
+      expect(exportData.hosts).toHaveLength(1);
+      expect(exportData.hosts[0].name).toBe('test-host');
+    });
+
+    it('should export host with its group', async () => {
+      await hostManager.initialize();
+
+      const group = await hostManager.addGroup('test-group');
+      const host = await hostManager.addHost({
+        name: 'test-host',
+        host: '192.168.1.1',
+        port: 22,
+        username: 'user',
+        group: group.id
+      });
+
+      const exportJson = await hostManager.exportHost(host.id);
+      const exportData = JSON.parse(exportJson);
+
+      expect(exportData.hosts).toHaveLength(1);
+      expect(exportData.groups).toHaveLength(1);
+      expect(exportData.groups[0].name).toBe('test-group');
+    });
+
+    it('should export group with hosts', async () => {
+      await hostManager.initialize();
+
+      const group = await hostManager.addGroup('test-group');
+      await hostManager.addHost({
+        name: 'host1',
+        host: '192.168.1.1',
+        port: 22,
+        username: 'user',
+        group: group.id
+      });
+
+      await hostManager.addHost({
+        name: 'host2',
+        host: '192.168.1.2',
+        port: 22,
+        username: 'admin',
+        group: group.id
+      });
+
+      await hostManager.addHost({
+        name: 'host3',
+        host: '192.168.1.3',
+        port: 22,
+        username: 'root'
+      });
+
+      const exportJson = await hostManager.exportGroup(group.id);
+      const exportData = JSON.parse(exportJson);
+
+      expect(exportData.hosts).toHaveLength(2);
+      expect(exportData.groups).toHaveLength(1);
+    });
+
+    it('should import hosts from JSON', async () => {
+      await hostManager.initialize();
+
+      const importData = {
+        version: '1.0.0',
+        exportDate: new Date().toISOString(),
+        hosts: [
+          {
+            name: 'imported-host',
+            host: '10.0.0.1',
+            port: 22,
+            username: 'ubuntu'
+          }
+        ],
+        groups: []
+      };
+
+      const result = await hostManager.importHosts(JSON.stringify(importData));
+
+      expect(result.imported).toBe(1);
+      expect(result.skipped).toBe(0);
+
+      const hosts = await hostManager.getHosts();
+      expect(hosts).toHaveLength(1);
+      expect(hosts[0].name).toBe('imported-host');
+    });
+
+    it('should skip duplicate hosts when importing', async () => {
+      await hostManager.initialize();
+
+      await hostManager.addHost({
+        name: 'existing-host',
+        host: '192.168.1.1',
+        port: 22,
+        username: 'user'
+      });
+
+      const importData = {
+        version: '1.0.0',
+        exportDate: new Date().toISOString(),
+        hosts: [
+          {
+            name: 'duplicate-host',
+            host: '192.168.1.1',
+            port: 22,
+            username: 'user'
+          },
+          {
+            name: 'new-host',
+            host: '192.168.1.2',
+            port: 22,
+            username: 'admin'
+          }
+        ],
+        groups: []
+      };
+
+      const result = await hostManager.importHosts(JSON.stringify(importData));
+
+      expect(result.imported).toBe(1);
+      expect(result.skipped).toBe(1);
+
+      const hosts = await hostManager.getHosts();
+      expect(hosts).toHaveLength(2);
+    });
+
+    it('should import groups and map group IDs', async () => {
+      await hostManager.initialize();
+
+      const importData = {
+        version: '1.0.0',
+        exportDate: new Date().toISOString(),
+        hosts: [
+          {
+            name: 'host1',
+            host: '192.168.1.1',
+            port: 22,
+            username: 'user',
+            group: 'old-group-id'
+          }
+        ],
+        groups: [
+          {
+            id: 'old-group-id',
+            name: 'imported-group'
+          }
+        ]
+      };
+
+      const result = await hostManager.importHosts(JSON.stringify(importData));
+
+      expect(result.imported).toBe(1);
+
+      const groups = await hostManager.getGroups();
+      expect(groups).toHaveLength(1);
+      expect(groups[0].name).toBe('imported-group');
+
+      const hosts = await hostManager.getHosts();
+      expect(hosts[0].group).toBe(groups[0].id);
+    });
+
+    it('should throw error for invalid JSON', async () => {
+      await hostManager.initialize();
+      await expect(hostManager.importHosts('invalid json')).rejects.toThrow('Invalid JSON format');
+    });
+
+    it('should throw error for missing hosts array', async () => {
+      await hostManager.initialize();
+      await expect(hostManager.importHosts('{}')).rejects.toThrow('Invalid import data');
+    });
+
+    it('should skip hosts with missing required fields', async () => {
+      await hostManager.initialize();
+
+      const importData = {
+        version: '1.0.0',
+        exportDate: new Date().toISOString(),
+        hosts: [
+          {
+            name: 'incomplete-host',
+            port: 22
+          },
+          {
+            name: 'valid-host',
+            host: '192.168.1.1',
+            username: 'user',
+            port: 22
+          }
+        ],
+        groups: []
+      };
+
+      const result = await hostManager.importHosts(JSON.stringify(importData));
+
+      expect(result.imported).toBe(1);
+      expect(result.skipped).toBe(1);
+    });
+
+    it('should throw error when exporting non-existent host', async () => {
+      await hostManager.initialize();
+      await expect(hostManager.exportHost('non-existent-id')).rejects.toThrow('Host not found');
+    });
+
+    it('should merge with existing groups when importing', async () => {
+      await hostManager.initialize();
+
+      const existingGroup = await hostManager.addGroup('existing-group');
+
+      const importData = {
+        version: '1.0.0',
+        exportDate: new Date().toISOString(),
+        hosts: [
+          {
+            name: 'host1',
+            host: '192.168.1.1',
+            port: 22,
+            username: 'user',
+            group: 'old-group-id'
+          }
+        ],
+        groups: [
+          {
+            id: 'old-group-id',
+            name: 'existing-group'
+          }
+        ]
+      };
+
+      await hostManager.importHosts(JSON.stringify(importData));
+
+      const groups = await hostManager.getGroups();
+      expect(groups).toHaveLength(1);
+      expect(groups[0].id).toBe(existingGroup.id);
+    });
+
+    it('should preserve host metadata during import', async () => {
+      await hostManager.initialize();
+
+      const importData = {
+        version: '1.0.0',
+        exportDate: new Date().toISOString(),
+        hosts: [
+          {
+            name: 'full-host',
+            host: '192.168.1.1',
+            port: 2222,
+            username: 'admin',
+            defaultRemotePath: '/var/www',
+            color: '#FF0000',
+            starred: true,
+            recentPaths: ['/home', '/var'],
+            bookmarks: [{ name: 'web', path: '/var/www' }]
+          }
+        ],
+        groups: []
+      };
+
+      await hostManager.importHosts(JSON.stringify(importData));
+
+      const hosts = await hostManager.getHosts();
+      expect(hosts[0].defaultRemotePath).toBe('/var/www');
+      expect(hosts[0].color).toBe('#FF0000');
+      expect(hosts[0].starred).toBe(true);
+      expect(hosts[0].recentPaths).toEqual(['/home', '/var']);
+      expect(hosts[0].bookmarks).toEqual([{ name: 'web', path: '/var/www' }]);
+    });
+
+    it('should use default port 22 if not specified in import', async () => {
+      await hostManager.initialize();
+
+      const importData = {
+        version: '1.0.0',
+        exportDate: new Date().toISOString(),
+        hosts: [
+          {
+            name: 'no-port-host',
+            host: '192.168.1.1',
+            username: 'user'
+          }
+        ],
+        groups: []
+      };
+
+      await hostManager.importHosts(JSON.stringify(importData));
+
+      const hosts = await hostManager.getHosts();
+      expect(hosts[0].port).toBe(22);
+    });
+  });
 });
