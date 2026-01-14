@@ -12,6 +12,7 @@ import { logger } from './logger';
 export class HostManager {
   private static readonly STORAGE_KEY = 'hostConfigs';
   private context: vscode.ExtensionContext;
+  private cachedData: StorageData | null = null;
 
   constructor(context: vscode.ExtensionContext) {
     this.context = context;
@@ -253,13 +254,29 @@ export class HostManager {
    */
   private async loadData(): Promise<StorageData> {
     const data = this.context.globalState.get<StorageData>(HostManager.STORAGE_KEY);
-    return data || { hosts: [], groups: [], recentUsed: [] };
+    this.cachedData = data || { hosts: [], groups: [], recentUsed: [] };
+    return this.cachedData;
+  }
+
+  /**
+   * Get hosts synchronously (from cache)
+   */
+  getHostsSync(): HostConfig[] {
+    return this.cachedData?.hosts || [];
+  }
+
+  /**
+   * Get groups synchronously (from cache)
+   */
+  getGroupsSync(): GroupConfig[] {
+    return this.cachedData?.groups || [];
   }
 
   /**
    * Save data
    */
   private async saveData(data: StorageData): Promise<void> {
+    this.cachedData = data;
     await this.context.globalState.update(HostManager.STORAGE_KEY, data);
     logger.info(`Data saved and synced: ${data.hosts.length} hosts, ${data.groups.length} groups`);
   }

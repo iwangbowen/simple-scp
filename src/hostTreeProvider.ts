@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { HostConfig, GroupConfig, PathBookmark } from './types';
 import { HostManager } from './hostManager';
 import { AuthManager } from './authManager';
+import { logger } from './logger';
 
 /**
  * TreeView 项类型
@@ -114,51 +115,73 @@ export class HostTreeProvider implements vscode.TreeDataProvider<HostTreeItem> {
 
   async expandAll(): Promise<void> {
     if (!this.treeView) {
+      logger.warn('TreeView not initialized, cannot expand all');
       return;
     }
 
-    // Get all groups
-    const groups = await this.hostManager.getGroups();
+    logger.info('Expanding all items in tree view');
 
-    // Expand each group
-    for (const group of groups) {
-      const groupItem = new HostTreeItem(
-        group.name,
-        'group',
-        group,
-        vscode.TreeItemCollapsibleState.Collapsed
-      );
+    // Get all root items (groups and ungrouped hosts)
+    const rootItems = await this.getRootItems();
+    logger.info(`Found ${rootItems.length} root items to expand`);
 
+    // Expand each item
+    for (const item of rootItems) {
       try {
-        await this.treeView.reveal(groupItem, { expand: true });
-      } catch (error) {
-        // Ignore errors if item not found in tree
-      }
-    }
-
-    // Also expand hosts with bookmarks
-    const hosts = await this.hostManager.getHosts();
-    for (const host of hosts) {
-      const bookmarks = await this.hostManager.getBookmarks(host.id);
-      if (bookmarks.length > 0) {
-        const hostItem = new HostTreeItem(
-          `${host.name} (${host.username}@${host.host})`,
-          'host',
-          host,
-          vscode.TreeItemCollapsibleState.Collapsed
-        );
-
-        try {
-          await this.treeView.reveal(hostItem, { expand: true });
-        } catch (error) {
-          // Ignore errors if item not found in tree
+        if (item.collapsibleState === vscode.TreeItemCollapsibleState.Collapsed ||
+            item.collapsibleState === vscode.TreeItemCollapsibleState.Expanded) {
+          logger.info(`Expanding item: ${item.label}`);
+          await this.treeView.reveal(item, { expand: 1, select: false, focus: false });
         }
+      } catch (error) {
+        logger.error(`Failed to expand item ${item.label}: ${error}`);
       }
     }
+
+    logger.info('Expand all completed');
   }
 
   getTreeItem(element: HostTreeItem): vscode.TreeItem {
     return element;
+  }
+
+  getParent(element: HostTreeItem): vscode.ProviderResult<HostTreeItem> {
+    if (element.type === 'bookmark') {
+      // Bookmark's parent is its host (use hostId from element)
+      if (!element.hostId) {
+        return undefined;
+      }
+      const hosts = this.hostManager.getHostsSync();
+      const host = hosts.find((h: HostConfig) => h.id === element.hostId);
+      if (host) {
+        return new HostTreeItem(
+          host.name,
+          'host',
+          host,
+          vscode.TreeItemCollapsibleState.Collapsed,
+          true, // hasAuth - doesn't matter for parent reference
+          undefined,
+          this.extensionPath
+        );
+      }
+    } else if (element.type === 'host') {
+      // Host's parent is its group (if any)
+      const host = element.data as HostConfig;
+      if (host.group) {
+        const groups = this.hostManager.getGroupsSync();
+        const group = groups.find((g: GroupConfig) => g.id === host.group);
+        if (group) {
+          return new HostTreeItem(
+            group.name,
+            'group',
+            group,
+            vscode.TreeItemCollapsibleState.Collapsed
+          );
+        }
+      }
+    }
+    // Group has no parent
+    return undefined;
   }
 
   async getChildren(element?: HostTreeItem): Promise<HostTreeItem[]> {
