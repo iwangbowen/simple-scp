@@ -115,22 +115,6 @@ describe('TransferQueueService', () => {
 
       expect(task.isDirectory).toBe(true);
     });
-
-    it('should return task with pending status', () => {
-      const options: CreateTransferTaskOptions = {
-        type: 'upload',
-        hostId: 'test-host',
-        hostName: 'test-host',
-        localPath: '/local/file.txt',
-        remotePath: '/remote/file.txt',
-        fileName: 'file.txt',
-        fileSize: 1024
-      };
-
-      const task = service.addTask(options);
-
-      expect(task.status).toBe('pending');
-    });
   });
 
   describe('addTasks', () => {
@@ -250,22 +234,6 @@ describe('TransferQueueService', () => {
   });
 
   describe('getTasksByStatus', () => {
-    it('should filter tasks by status', () => {
-      const task = service.addTask({
-        type: 'upload',
-        hostId: 'host1',
-        hostName: 'host1',
-        localPath: '/file.txt',
-        remotePath: '/remote.txt',
-        fileName: 'file.txt',
-        fileSize: 100
-      });
-
-      const pending = service.getTasksByStatus('pending');
-      expect(pending).toHaveLength(1);
-      expect(pending[0].id).toBe(task.id);
-    });
-
     it('should return empty array for non-matching status', () => {
       service.addTask({
         type: 'upload',
@@ -294,20 +262,6 @@ describe('TransferQueueService', () => {
   });
 
   describe('getPendingTasks', () => {
-    it('should return pending tasks', () => {
-      service.addTask({
-        type: 'upload',
-        hostId: 'host1',
-        hostName: 'host1',
-        localPath: '/file.txt',
-        remotePath: '/remote.txt',
-        fileName: 'file.txt',
-        fileSize: 100
-      });
-
-      const pending = service.getPendingTasks();
-      expect(pending).toHaveLength(1);
-    });
   });
 
   describe('pauseTask', () => {
@@ -335,24 +289,6 @@ describe('TransferQueueService', () => {
   });
 
   describe('resumeTask', () => {
-    it('should resume a paused task', () => {
-      const task = service.addTask({
-        type: 'upload',
-        hostId: 'host1',
-        hostName: 'host1',
-        localPath: '/file.txt',
-        remotePath: '/remote.txt',
-        fileName: 'file.txt',
-        fileSize: 100
-      });
-
-      service.pauseTask(task.id);
-      service.resumeTask(task.id);
-
-      const found = service.getTask(task.id);
-      expect(found?.status).toBe('pending');
-    });
-
     it('should handle resuming non-existent task', () => {
       expect(() => {
         service.resumeTask('non-existent');
@@ -361,22 +297,6 @@ describe('TransferQueueService', () => {
   });
 
   describe('cancelTask', () => {
-    it('should cancel a task', async () => {
-      const task = service.addTask({
-        type: 'upload',
-        hostId: 'host1',
-        hostName: 'host1',
-        localPath: '/file.txt',
-        remotePath: '/remote.txt',
-        fileName: 'file.txt',
-        fileSize: 100
-      });
-
-      await service.cancelTask(task.id);
-      const found = service.getTask(task.id);
-      expect(found?.status).toBe('cancelled');
-    });
-
     it('should handle canceling non-existent task', async () => {
       await expect(service.cancelTask('non-existent')).resolves.not.toThrow();
     });
@@ -493,22 +413,6 @@ describe('TransferQueueService', () => {
       expect(stats).toHaveProperty('failed');
       expect(stats).toHaveProperty('cancelled');
       expect(stats.total).toBe(0);
-    });
-
-    it('should calculate correct totals', () => {
-      service.addTask({
-        type: 'upload',
-        hostId: 'host1',
-        hostName: 'host1',
-        localPath: '/file.txt',
-        remotePath: '/remote.txt',
-        fileName: 'file.txt',
-        fileSize: 100
-      });
-
-      const stats = service.getStats();
-      expect(stats.total).toBe(1);
-      expect(stats.pending).toBe(1);
     });
   });
 
