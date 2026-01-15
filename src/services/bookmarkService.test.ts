@@ -366,4 +366,106 @@ describe('BookmarkService', () => {
       );
     });
   });
+
+  describe('editBookmarkDescription', () => {
+    it('should show warning if not a bookmark', async () => {
+      const hostItem: any = {
+        type: 'host',
+        data: {},
+        hostId: 'host1'
+      };
+
+      await bookmarkService.editBookmarkDescription(hostItem);
+
+      expect(vscode.window.showWarningMessage).toHaveBeenCalledWith('Please select a bookmark');
+      expect(vscode.window.showInputBox).not.toHaveBeenCalled();
+    });
+
+    it('should update description when user enters new text', async () => {
+      const bookmarkItem: any = {
+        type: 'bookmark',
+        data: { name: 'My Projects', path: '/remote/projects', description: 'Old description' },
+        hostId: 'host1'
+      };
+
+      (vscode.window.showInputBox as any).mockResolvedValue('New description');
+
+      await bookmarkService.editBookmarkDescription(bookmarkItem);
+
+      expect(mockHostManager.updateBookmark).toHaveBeenCalledWith(
+        'host1',
+        'My Projects',
+        'My Projects',
+        '/remote/projects',
+        'New description'
+      );
+      expect(mockTreeProvider.refresh).toHaveBeenCalled();
+      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith('Description updated for bookmark: My Projects');
+    });
+
+    it('should clear description when user enters empty string', async () => {
+      const bookmarkItem: any = {
+        type: 'bookmark',
+        data: { name: 'My Projects', path: '/remote/projects', description: 'Old description' },
+        hostId: 'host1'
+      };
+
+      (vscode.window.showInputBox as any).mockResolvedValue('   '); // Empty with spaces
+
+      await bookmarkService.editBookmarkDescription(bookmarkItem);
+
+      expect(mockHostManager.updateBookmark).toHaveBeenCalledWith(
+        'host1',
+        'My Projects',
+        'My Projects',
+        '/remote/projects',
+        undefined // Description is cleared
+      );
+      expect(mockTreeProvider.refresh).toHaveBeenCalled();
+      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith('Description cleared for bookmark: My Projects');
+    });
+
+    it('should not update if user cancels input', async () => {
+      const bookmarkItem: any = {
+        type: 'bookmark',
+        data: { name: 'My Projects', path: '/remote/projects', description: 'Old description' },
+        hostId: 'host1'
+      };
+
+      (vscode.window.showInputBox as any).mockResolvedValue(undefined); // User cancelled
+
+      await bookmarkService.editBookmarkDescription(bookmarkItem);
+
+      expect(mockHostManager.updateBookmark).not.toHaveBeenCalled();
+      expect(mockTreeProvider.refresh).not.toHaveBeenCalled();
+    });
+
+    it('should not update if description has not changed', async () => {
+      const bookmarkItem: any = {
+        type: 'bookmark',
+        data: { name: 'My Projects', path: '/remote/projects', description: 'Same description' },
+        hostId: 'host1'
+      };
+
+      (vscode.window.showInputBox as any).mockResolvedValue('Same description');
+
+      await bookmarkService.editBookmarkDescription(bookmarkItem);
+
+      expect(mockHostManager.updateBookmark).not.toHaveBeenCalled();
+      expect(mockTreeProvider.refresh).not.toHaveBeenCalled();
+    });
+
+    it('should return early if hostId is missing', async () => {
+      const bookmarkItem: any = {
+        type: 'bookmark',
+        data: { name: 'My Projects', path: '/remote/projects' }
+        // No hostId
+      };
+
+      await bookmarkService.editBookmarkDescription(bookmarkItem);
+
+      expect(vscode.window.showInputBox).not.toHaveBeenCalled();
+      expect(mockHostManager.updateBookmark).not.toHaveBeenCalled();
+    });
+  });
 });

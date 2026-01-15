@@ -169,20 +169,35 @@ export class BookmarkService {
     }
 
     const newDescription = await vscode.window.showInputBox({
-      prompt: 'Enter bookmark description (optional)',
+      prompt: 'Enter bookmark description (leave empty to clear)',
       value: bookmark.description || '',
       placeHolder: 'e.g., Main project source code directory',
     });
 
-    // User cancelled or no change
-    if (newDescription === undefined || newDescription.trim() === (bookmark.description || '')) {
+    // User cancelled
+    if (newDescription === undefined) {
+      return;
+    }
+
+    // Allow empty string to clear description
+    const trimmedDescription = newDescription.trim();
+    const currentDescription = bookmark.description || '';
+
+    // Check if there's actually a change
+    if (trimmedDescription === currentDescription) {
       return;
     }
 
     try {
-      await this.hostManager.updateBookmark(hostId, bookmark.name, bookmark.name, bookmark.path, newDescription.trim() || undefined);
+      // Empty string will be stored as undefined to clear the description
+      await this.hostManager.updateBookmark(hostId, bookmark.name, bookmark.name, bookmark.path, trimmedDescription || undefined);
       this.treeProvider.refresh();
-      vscode.window.showInformationMessage(`Description updated for bookmark: ${bookmark.name}`);
+
+      if (trimmedDescription) {
+        vscode.window.showInformationMessage(`Description updated for bookmark: ${bookmark.name}`);
+      } else {
+        vscode.window.showInformationMessage(`Description cleared for bookmark: ${bookmark.name}`);
+      }
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to update description: ${error}`);
     }
