@@ -1,4 +1,21 @@
-# Simple SCP
+# Simple SCP (DEPRECATED)
+
+## ⚠️ DEPRECATED - Please Use Simple SFTP Instead
+
+**This extension has been migrated to a new project.**
+
+👉 **Please search for "Simple SFTP" in the VS Code marketplace to download the latest version.**
+
+The new Simple SFTP extension includes:
+- ✅ All features from Simple SCP
+- ✅ Full SFTP protocol support with better performance
+- ✅ Enhanced file synchronization
+- ✅ Improved stability and active development
+- ✅ Migration guide for your existing configurations
+
+**This extension will no longer receive updates.**
+
+---
 
 > [English](#simple-scp---english) | [中文说明](#simple-scp---中文说明)
 
@@ -283,7 +300,24 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 
 ---
 
-## Simple SCP - 中文说明
+## Simple SCP - 中文说明 (已废弃)
+
+## ⚠️ 已废弃 - 请使用 Simple SFTP
+
+**此扩展已迁移到新项目。**
+
+👉 **请在 VS Code 市场搜索 "Simple SFTP" 下载最新版本。**
+
+新的 Simple SFTP 扩展包含：
+- ✅ Simple SCP 的所有功能
+- ✅ 完整的 SFTP 协议支持，性能更好
+- ✅ 增强的文件同步功能
+- ✅ 改进的稳定性和持续开发支持
+- ✅ 现有配置的迁移指南
+
+**此扩展将不再接收更新。**
+
+---
 
 > [English](#simple-scp) | [中文说明](#simple-scp---中文说明)
 
