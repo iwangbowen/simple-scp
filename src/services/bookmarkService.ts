@@ -192,12 +192,6 @@ export class BookmarkService {
       // Empty string will be stored as undefined to clear the description
       await this.hostManager.updateBookmark(hostId, bookmark.name, bookmark.name, bookmark.path, trimmedDescription || undefined);
       this.treeProvider.refresh();
-
-      if (trimmedDescription) {
-        vscode.window.showInformationMessage(`Description updated for bookmark: ${bookmark.name}`);
-      } else {
-        vscode.window.showInformationMessage(`Description cleared for bookmark: ${bookmark.name}`);
-      }
     } catch (error) {
       vscode.window.showErrorMessage(`Failed to update description: ${error}`);
     }

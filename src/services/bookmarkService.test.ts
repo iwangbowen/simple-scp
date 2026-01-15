@@ -400,7 +400,6 @@ describe('BookmarkService', () => {
         'New description'
       );
       expect(mockTreeProvider.refresh).toHaveBeenCalled();
-      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith('Description updated for bookmark: My Projects');
     });
 
     it('should clear description when user enters empty string', async () => {
@@ -422,7 +421,6 @@ describe('BookmarkService', () => {
         undefined // Description is cleared
       );
       expect(mockTreeProvider.refresh).toHaveBeenCalled();
-      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith('Description cleared for bookmark: My Projects');
     });
 
     it('should not update if user cancels input', async () => {
