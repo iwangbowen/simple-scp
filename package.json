@@ -195,6 +195,12 @@
         "icon": "$(copy)"
       },
       {
+        "command": "simpleScp.openSshTerminal",
+        "title": "Open SSH Terminal",
+        "category": "Simple SCP",
+        "icon": "$(terminal)"
+      },
+      {
         "command": "simpleScp.addBookmark",
         "title": "Add Bookmark",
         "category": "Simple SCP",
@@ -555,6 +561,11 @@
           "command": "simpleScp.copySshCommand",
           "when": "view == simpleScp.hosts && viewItem == host",
           "group": "2_actions@1"
+        },
+        {
+          "command": "simpleScp.openSshTerminal",
+          "when": "view == simpleScp.hosts && viewItem == host",
+          "group": "2_actions@1a"
         },
         {
           "command": "simpleScp.testConnection",

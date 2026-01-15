@@ -109,6 +109,9 @@ export class CommandHandler {
       vscode.commands.registerCommand('simpleScp.copySshCommand', (item: HostTreeItem) =>
         this.copySshCommand(item)
       ),
+      vscode.commands.registerCommand('simpleScp.openSshTerminal', (item: HostTreeItem) =>
+        this.openSshTerminal(item)
+      ),
       vscode.commands.registerCommand('simpleScp.addBookmark', (item: HostTreeItem) =>
         this.bookmarkService.addBookmark(item)
       ),
@@ -1515,6 +1518,47 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     await vscode.env.clipboard.writeText(sshCommand);
     vscode.window.showInformationMessage(`Copied: ${sshCommand}`);
     logger.info(`Copied SSH command: ${sshCommand}`);
+  }
+
+  /**
+   * Open SSH Terminal - opens a new terminal with SSH connection to the host
+   */
+  private async openSshTerminal(item: HostTreeItem): Promise<void> {
+    if (item.type !== 'host') {return;}
+
+    const config = item.data as HostConfig;
+    const fullConfig = await this.getFullHostConfig(config);
+
+    if (!fullConfig) {
+      return;
+    }
+
+    // Build the SSH command arguments
+    const args: string[] = [];
+
+    // Add port if not default
+    if (config.port && config.port !== 22) {
+      args.push('-p', config.port.toString());
+    }
+
+    // Add identity file if using private key auth
+    if (fullConfig.auth.type === 'privateKey' && fullConfig.auth.privateKeyPath) {
+      args.push('-i', fullConfig.auth.privateKeyPath);
+    }
+
+    // Add the connection string
+    args.push(`${config.username}@${config.host}`);
+
+    // Create and show the terminal
+    const terminal = vscode.window.createTerminal({
+      name: `SSH: ${config.name}`,
+      shellPath: 'ssh',
+      shellArgs: args,
+      iconPath: new vscode.ThemeIcon('terminal')
+    });
+
+    terminal.show();
+    logger.info(`Opened SSH terminal for host: ${config.name}`);
   }
 
   /**
