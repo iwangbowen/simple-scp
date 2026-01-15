@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-import { HostConfig, GroupConfig, StorageData, SshConfigEntry } from './types';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as os from 'node:os';
+import { HostConfig, GroupConfig, StorageData, SshConfigEntry, PathBookmark } from './types';
 import { logger } from './logger';
 
 /**
@@ -11,7 +11,7 @@ import { logger } from './logger';
  */
 export class HostManager {
   private static readonly STORAGE_KEY = 'hostConfigs';
-  private context: vscode.ExtensionContext;
+  private readonly context: vscode.ExtensionContext;
   private cachedData: StorageData | null = null;
 
   constructor(context: vscode.ExtensionContext) {
@@ -180,13 +180,13 @@ export class HostManager {
       }
 
       // Import only basic info, no authentication
-      // User needs to configure authentication separately
-      hosts.push({
-        name: entry.Host,
-        host: entry.HostName,
-        port: entry.Port ? parseInt(entry.Port) : 22,
-        username: entry.User || 'root',
-      });
+       // User needs to configure authentication separately
+       hosts.push({
+         name: entry.Host,
+         host: entry.HostName,
+         port: entry.Port ? Number.parseInt(entry.Port) : 22,
+         username: entry.User || 'root',
+       });
     }
 
     return hosts;
@@ -219,13 +219,13 @@ export class HostManager {
 
       if (!exists) {
         // Only import basic host information, authentication will be configured separately
-        const newHost: HostConfig = {
-          id: this.generateId(),
-          name: entry.Host,
-          host: entry.HostName,
-          port: entry.Port ? parseInt(entry.Port) : 22,
-          username: entry.User || 'root',
-        };
+          const newHost: HostConfig = {
+            id: this.generateId(),
+            name: entry.Host,
+            host: entry.HostName,
+            port: entry.Port ? Number.parseInt(entry.Port) : 22,
+            username: entry.User || 'root',
+          };
         data.hosts.push(newHost);
         importedHosts.push(newHost);
       }
@@ -253,20 +253,20 @@ export class HostManager {
         continue;
       }
 
-      const hostMatch = trimmed.match(/^Host\s+(.+)$/i);
-      if (hostMatch) {
-        if (currentEntry) {
-          entries.push(currentEntry);
-        }
-        currentEntry = { Host: hostMatch[1].trim() };
-        continue;
-      }
+      const hostMatch = /^Host\s+(.+)$/i.exec(trimmed);
+       if (hostMatch) {
+         if (currentEntry) {
+           entries.push(currentEntry);
+         }
+         currentEntry = { Host: hostMatch[1].trim() };
+         continue;
+       }
 
-      const keyValueMatch = trimmed.match(/^(\w+)\s+(.+)$/);
-      if (keyValueMatch && currentEntry) {
-        const [, key, value] = keyValueMatch;
-        currentEntry[key] = value.trim();
-      }
+       const keyValueMatch = /^(\w+)\s+(.+)$/.exec(trimmed);
+       if (keyValueMatch && currentEntry) {
+         const [, key, value] = keyValueMatch;
+         currentEntry[key] = value.trim();
+       }
     }
 
     if (currentEntry) {
@@ -435,7 +435,7 @@ export class HostManager {
     const data = await this.loadData();
     const host = data.hosts.find(h => h.id === hostId);
 
-    if (!host || !host.bookmarks) {
+    if (!host?.bookmarks) {
       return;
     }
 
@@ -464,7 +464,7 @@ export class HostManager {
    * Generate unique ID
    */
   private generateId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
   }
 
   /**
