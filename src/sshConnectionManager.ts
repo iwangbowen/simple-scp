@@ -1,6 +1,6 @@
-import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as os from 'node:os';
 import { Client, ConnectConfig } from 'ssh2';
 // @ts-ignore
 import SftpClient from 'ssh2-sftp-client';
@@ -12,7 +12,7 @@ import { logger } from './logger';
  * SSH 连接管理器
  */
 export class SshConnectionManager {
-  private static connectionPool = SshConnectionPool.getInstance();
+  private static readonly connectionPool = SshConnectionPool.getInstance();
 
   /**
    * 使用连接池执行操作
@@ -23,7 +23,7 @@ export class SshConnectionManager {
     operation: (sftpClient: SftpClient) => Promise<T>
   ): Promise<T> {
     const connectConfig = this.buildConnectConfig(config, authConfig);
-    const { client, sftpClient } = await this.connectionPool.getConnection(
+    const { sftpClient } = await this.connectionPool.getConnection(
       config,
       authConfig,
       connectConfig
@@ -74,12 +74,12 @@ export class SshConnectionManager {
     }
 
     try {
-      // 尝试使用私钥连接
-      await this.testConnection(config, authConfig);
-      return true;
-    } catch (error) {
-      return false;
-    }
+        // 尝试使用私钥连接
+        await this.testConnection(config, authConfig);
+        return true;
+      } catch {
+        return false;
+      }
   }
 
   /**
@@ -132,7 +132,7 @@ export class SshConnectionManager {
       }
 
       // 确保远程目录存在
-      const remoteDir = path.dirname(remotePath).replace(/\\/g, '/');
+      const remoteDir = path.dirname(remotePath).replaceAll('\\', '/');
       await sftp.mkdir(remoteDir, true);
 
       // 上传文件
@@ -175,8 +175,8 @@ export class SshConnectionManager {
         }
 
         const relativePath = path.relative(localPath, file);
-        const remoteFilePath = path.join(remotePath, relativePath).replace(/\\/g, '/');
-        const remoteDir = path.dirname(remoteFilePath).replace(/\\/g, '/');
+        const remoteFilePath = path.join(remotePath, relativePath).replaceAll('\\', '/');
+        const remoteDir = path.dirname(remoteFilePath).replaceAll('\\', '/');
 
         // 确保远程目录存在
         await sftp.mkdir(remoteDir, true);
@@ -322,7 +322,7 @@ export class SshConnectionManager {
     const items = await sftp.readdir(remotePath);
 
     for (const item of items) {
-      const fullPath = `${remotePath}/${item.name}`.replace(/\/\//g, '/');
+      const fullPath = `${remotePath}/${item.name}`.replaceAll('//', '/');
       const stats = await sftp.stat(fullPath);
 
       if (stats.isDirectory()) {
@@ -366,34 +366,58 @@ export class SshConnectionManager {
     return new Promise((resolve, reject) => {
       conn
         .on('ready', () => {
-          // 执行命令添加公钥到 authorized_keys
-          const command = `mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '${publicKey}' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys`;
-
-          conn.exec(command, (err, stream) => {
-            if (err) {
-              conn.end();
-              reject(err);
-              return;
-            }
-
-            stream
-              .on('close', () => {
-                conn.end();
-                resolve();
-              })
-              .on('data', (data: Buffer) => {
-                console.log('STDOUT:', data.toString());
-              })
-              .stderr.on('data', (data: Buffer) => {
-                console.error('STDERR:', data.toString());
-              });
-          });
+          this.executeAddPublicKeyCommand(conn, publicKey, resolve, reject);
         })
         .on('error', err => {
           reject(err);
         })
         .connect(this.buildConnectConfig(config, authConfig));
     });
+  }
+
+  /**
+   * 执行添加公钥的命令
+   */
+  private static executeAddPublicKeyCommand(
+    conn: Client,
+    publicKey: string,
+    resolve: () => void,
+    reject: (error: any) => void
+  ): void {
+    // 执行命令添加公钥到 authorized_keys
+    const command = `mkdir -p ~/.ssh && chmod 700 ~/.ssh && echo '${publicKey}' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys`;
+
+    conn.exec(command, (err, stream) => {
+      if (err) {
+        conn.end();
+        reject(err);
+        return;
+      }
+
+      this.handleStreamOutput(stream, conn, resolve, reject);
+    });
+  }
+
+  /**
+   * 处理流输出
+   */
+  private static handleStreamOutput(
+    stream: any,
+    conn: Client,
+    resolve: () => void,
+    reject: (error: any) => void
+  ): void {
+    stream
+      .on('close', () => {
+        conn.end();
+        resolve();
+      })
+      .on('data', (data: Buffer) => {
+        console.log('STDOUT:', data.toString());
+      })
+      .stderr.on('data', (data: Buffer) => {
+        console.error('STDERR:', data.toString());
+      });
   }
 
   /**
@@ -409,7 +433,7 @@ export class SshConnectionManager {
     if (authConfig.authType === 'password' && authConfig.password) {
       connectConfig.password = authConfig.password;
     } else if (authConfig.authType === 'privateKey' && authConfig.privateKeyPath) {
-      const privateKeyPath = authConfig.privateKeyPath.replace('~', require('os').homedir());
+      const privateKeyPath = authConfig.privateKeyPath.replace('~', os.homedir());
       if (fs.existsSync(privateKeyPath)) {
         connectConfig.privateKey = fs.readFileSync(privateKeyPath);
         if (authConfig.passphrase) {
@@ -474,7 +498,7 @@ export class SshConnectionManager {
         continue;
       }
 
-      const fullPath = `${remotePath}/${item.name}`.replace(/\/\//g, '/');
+      const fullPath = `${remotePath}/${item.name}`.replaceAll('//', '/');
 
       if (item.type === 'd') {
         // 递归获取子目录文件
