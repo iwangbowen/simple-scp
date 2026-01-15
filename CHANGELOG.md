@@ -1,5 +1,38 @@
 # Change Log
 
+## [1.1.0] - 2026-01-15
+
+### Added
+
+- **SSH Terminal Integration**: Open SSH terminal directly from host context menu
+  - Quick access via "Open SSH Terminal" command
+  - Automatically handles port configuration and private key authentication
+  - Terminal title displays host name for easy identification
+  - Supports all authentication methods (password, private key, SSH agent)
+
+- **Bookmark Description Support**: Add optional descriptions/notes to bookmarks
+  - View descriptions in tooltip when hovering over bookmarks
+  - Edit description via dedicated "Edit Description" command
+  - Leave empty to clear existing description
+  - Silent updates without confirmation messages for better UX
+
+### Improved
+
+- **Context Menu Organization**: Reorganized host context menu into logical groups
+  - **Manage**: New/Edit/Delete Host, Refresh
+  - **Connect**: SSH Terminal, Open/Browse Path, Upload/Download Files
+  - **Authentication**: Configure Authentication
+  - **Bookmarks**: Add/Rename/Edit/Delete Bookmark, Browse Bookmark
+  - **Export**: Export Host/Group
+  - **Danger Zone**: Delete Host
+  - Improved discoverability with clear functional grouping
+
+### Fixed
+
+- Fixed TypeScript compilation errors in `exportGroup()` and `exportHost()` methods
+  - Added proper null checks for group/host name properties
+  - Used optional chaining (`?.`) and nullish coalescing (`??`) for safer type handling
+
 ## [1.0.8] - 2026-01-14
 
 ### Added
