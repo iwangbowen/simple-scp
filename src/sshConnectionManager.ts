@@ -6,6 +6,7 @@ import { Client, ConnectConfig } from 'ssh2';
 import SftpClient from 'ssh2-sftp-client';
 import { HostConfig, HostAuthConfig } from './types';
 import { SshConnectionPool } from './sshConnectionPool';
+import { logger } from './logger';
 
 /**
  * SSH 连接管理器
