@@ -989,8 +989,9 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     }
 
     try {
-      const jsonData = await this.hostManager.exportGroup(item.id);
-      const group = (await this.hostManager.getGroups()).find(g => g.id === item.id);
+      const groupId = (item.data as GroupConfig).id;
+      const jsonData = await this.hostManager.exportGroup(groupId);
+      const group = (await this.hostManager.getGroups()).find(g => g.id === groupId);
       const groupName = group?.name ?? 'group';
       const fileName = groupName.toLowerCase().replace(/\s+/g, '-');
       await this.saveExportFile(jsonData, fileName);
@@ -1008,8 +1009,9 @@ private async deleteHost(item: HostTreeItem, items?: HostTreeItem[]): Promise<vo
     }
 
     try {
-      const jsonData = await this.hostManager.exportHost(item.id);
-      const host = (await this.hostManager.getHosts()).find(h => h.id === item.id);
+      const hostId = (item.data as HostConfig).id;
+      const jsonData = await this.hostManager.exportHost(hostId);
+      const host = (await this.hostManager.getHosts()).find(h => h.id === hostId);
       const hostName = host?.name ?? 'host';
       const fileName = hostName.toLowerCase().replace(/\s+/g, '-');
       await this.saveExportFile(jsonData, fileName);
