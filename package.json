@@ -1,8 +1,8 @@
 {
   "name": "simple-scp",
   "displayName": "Simple SCP (DEPRECATED)",
-  "description": "⚠️ DEPRECATED: This extension has been migrated. Please search for 'Simple SFTP' in the marketplace to download the latest version with enhanced features and continued support.",
-  "version": "1.2.0",
+  "description": "⚠️ DEPRECATED: This extension has been migrated. Please search for 'Simple SFTP Plus' in the marketplace to download the latest version with enhanced features and continued support.",
+  "version": "1.2.1",
   "publisher": "WangBowen",
   "icon": "resources/icon.png",
   "license": "MIT",

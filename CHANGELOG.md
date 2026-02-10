@@ -1,17 +1,27 @@
 # Change Log
 
+## [1.2.1] - 2026-02-10
+
+### Changed
+
+- **Extension Name Update**: Updated all references from "Simple SFTP" to "Simple SFTP Plus"
+  - Updated deprecation notice in README
+  - Updated package description
+  - Updated CHANGELOG migration instructions
+  - Reflects new extension name for better user guidance
+
 ## [1.2.0] - 2026-01-15
 
 ### ⚠️ DEPRECATED
 
 - **Extension Deprecated**: This extension has been migrated to a new project
-- **Action Required**: Please uninstall this extension and search for **"Simple SFTP"** in the VS Code marketplace
-- **New Features**: The new Simple SFTP extension includes all features from Simple SCP plus:
+- **Action Required**: Please uninstall this extension and search for **"Simple SFTP Plus"** in the VS Code marketplace
+- **New Features**: The new Simple SFTP Plus extension includes all features from Simple SCP plus:
   - Full SFTP protocol support with better performance
   - Enhanced file synchronization
   - Improved stability and bug fixes
   - Active development and support
-- **Migration**: Your host configurations can be exported from this extension and imported into Simple SFTP
+- **Migration**: Your host configurations can be exported from this extension and imported into Simple SFTP Plus
 - **Timeline**: This extension will no longer receive updates
 
 ## [1.1.0] - 2026-01-15
